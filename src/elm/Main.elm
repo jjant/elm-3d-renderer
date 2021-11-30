@@ -12,8 +12,16 @@ import Renderer exposing (Color, Triangle)
 
 someTriangle : Triangle { position : Vec3i, color : Color }
 someTriangle =
-    ( { position = vec3i 10 30 0, color = red }
-    , { position = vec3i 15 5 0, color = green }
+    ( { position = vec3i 15 5 0, color = green }
+    , { position = vec3i 10 40 0, color = red }
+    , { position = vec3i 30 40 0, color = blue }
+    )
+
+
+someTriangle2 : Triangle { position : Vec3i, color : Color }
+someTriangle2 =
+    ( { position = vec3i 15 5 0, color = green }
+    , { position = vec3i 5 15 0, color = red }
     , { position = vec3i 30 40 0, color = blue }
     )
 
@@ -41,8 +49,8 @@ view model =
                 someTriangle
     in
     mainDiv
-        [ renderBuffer
-            (renderTriangle rotatedTriangle initBuffer)
+        [ renderBuffer (renderTriangle someTriangle initBuffer)
+        , renderBuffer (renderTriangle someTriangle2 initBuffer)
         ]
 
 
@@ -59,7 +67,8 @@ renderTriangle : Triangle { position : Vec3i, color : Color } -> Buffer -> Buffe
 renderTriangle triangle buffer =
     let
         sortedTriangle =
-            sort3 (\attribute -> attribute.position.y) triangle
+            triangle
+                |> sort3 (\attribute -> ( attribute.position.y, attribute.position.x ))
 
         ( v0, v1, v2 ) =
             mapTriangle .position sortedTriangle
@@ -67,37 +76,15 @@ renderTriangle triangle buffer =
         ( c0, c1, c2 ) =
             mapTriangle .color sortedTriangle
 
-        slope v w =
-            -- TODO: I'm now calculating dx/dy, why is this fine?
-            --
-            --
-            -- TODO: Handle division by 0
-            toFloat (v.x - w.x) / toFloat (v.y - w.y)
-
-        slopev1v0 =
-            slope v1 v0
-
-        slopev2v1 =
-            slope v2 v1
-
-        slopev0v2 =
-            slope v0 v2
-
         renderTopHalf buf =
             List.range v0.y v1.y
                 |> List.foldl
                     (\y currentBuffer ->
                         let
-                            dy =
-                                toFloat (y - v0.y)
-
-                            startX =
-                                v0.x + round (slopev1v0 * dy)
-
-                            endX =
-                                v0.x + round (slopev0v2 * dy)
+                            ( startX_, endX_ ) =
+                                computeXs y v0 v1 v2
                         in
-                        List.range startX endX
+                        List.range startX_ endX_
                             |> List.foldl
                                 (\x currentCurrentBuffer ->
                                     renderTrianglePoint ( x, y ) currentCurrentBuffer
@@ -117,13 +104,10 @@ renderTriangle triangle buffer =
                             dyV1 =
                                 toFloat (y - v1.y)
 
-                            startX =
-                                v1.x + round (slopev2v1 * dyV1)
-
-                            endX =
-                                v0.x + round (slopev0v2 * dyV0)
+                            ( startX_, endX_ ) =
+                                computeXs y v1 v2 v0
                         in
-                        List.range startX endX
+                        List.range startX_ endX_
                             |> List.foldl
                                 (\x currentCurrentBuffer ->
                                     renderTrianglePoint ( x, y ) currentCurrentBuffer
@@ -150,10 +134,65 @@ renderTriangle triangle buffer =
     in
     buffer
         |> renderTopHalf
-        |> renderBottomHalf
+        -- |> renderBottomHalf
         |> setPixel v0.x v0.y white
         |> setPixel v1.x v1.y white
         |> setPixel v2.x v2.y white
+
+
+slope : Vec3i -> Vec3i -> Maybe Float
+slope v w =
+    let
+        -- TODO: I'm now calculating dx/dy, why is this fine?
+        denom =
+            v.y - w.y
+    in
+    if denom == 0 then
+        Nothing
+
+    else
+        Just (toFloat (v.x - w.x) / toFloat denom)
+
+
+computeXs : Int -> Vec3i -> Vec3i -> Vec3i -> ( Int, Int )
+computeXs y p0 p1 p2 =
+    let
+        dy_ =
+            toFloat (y - p0.y)
+
+        _ =
+            Debug.log "\ny" y
+
+        slopeP1P0 =
+            slope p1 p0
+                |> Debug.log "slopeP1P0"
+
+        slopeP0P2 =
+            slope p0 p2
+                |> Debug.log "slopeP0P2"
+
+        startX =
+            slopeP1P0
+                |> Maybe.map (\slope_ -> p0.x + round (slope_ * dy_))
+                |> Maybe.withDefault (min p0.x p1.x)
+
+        endX =
+            slopeP0P2
+                |> Maybe.map (\slope_ -> p0.x + round (slope_ * dy_))
+                |> Maybe.withDefault (max p0.x p1.x)
+    in
+    Debug.log "(startX, endX)" <|
+        case slopeP1P0 of
+            Just sP1P0 ->
+                case slopeP0P2 of
+                    Just sP0P2 ->
+                        ( p0.x + round (sP1P0 * dy_), p0.x + round (sP0P2 * dy_) )
+
+                    Nothing ->
+                        Debug.todo "TODO: Figure out what to do in this case"
+
+            Nothing ->
+                sort2 identity ( p0.x, p1.x )
 
 
 type alias Buffer =
@@ -191,12 +230,13 @@ renderBuffer : Buffer -> Html msg
 renderBuffer buffer =
     let
         pixelSize =
-            20
+            10
     in
     div
         [ Html.style "display" "block"
         , Html.style "width" (String.fromFloat (pixelSize * width) ++ "px")
         , Html.style "line-height" "0"
+        , Html.style "padding" "12px"
         ]
         (buffer
             |> Array.map
@@ -263,8 +303,14 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = \_ -> Browser.Events.onAnimationFrameDelta Tick
+        , subscriptions = subscriptions
         }
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    -- Browser.Events.onAnimationFrameDelta Tick
+    Sub.none
 
 
 
@@ -284,6 +330,15 @@ mainDiv =
         , Html.style "background-color" "#aaa"
         , Html.style "height" "100%"
         ]
+
+
+sort2 : (a -> comparable) -> ( a, a ) -> ( a, a )
+sort2 f ( a, b ) =
+    if f a <= f b then
+        ( a, b )
+
+    else
+        ( b, a )
 
 
 {-| Taken from <https://www.reddit.com/r/programminghorror/comments/fpu16c/nicest_way_to_sort_3_numbers/>
