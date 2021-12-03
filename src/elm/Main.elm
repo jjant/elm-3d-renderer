@@ -1,65 +1,84 @@
 module Main exposing (main)
 
-import AltMath.Matrix4 as Mat4
+import AltMath.Matrix4 as Mat4 exposing (Mat4)
 import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Array exposing (..)
 import Browser
 import Browser.Events
-import Color exposing (black, blue, green, red)
+import Color exposing (black, blue)
 import Html exposing (Html, div)
 import Html.Attributes as Html
 import Raster
-import Renderer exposing (Buffer, Color, Triangle)
-import Vec3i exposing (Vec3i, vec3i)
+import Renderer exposing (Buffer, Color, Entity, Triangle)
 
 
-someTriangle : Triangle { position : Vec3i, color : Color }
-someTriangle =
-    -- ( { position = vec3i 15 5 0, color = green }
-    -- , { position = vec3i 10 5 0, color = red }
-    -- , { position = vec3i 30 40 0, color = blue }
-    -- )
-    ( { position = vec3i 15 5 0, color = red }
-    , { position = vec3i 10 5 0, color = red }
-    , { position = vec3i 30 40 0, color = red }
-    )
+width : number
+width =
+    100
 
 
-someTriangle2 : Triangle { position : Vec3i, color : Color }
-someTriangle2 =
-    ( { position = vec3i 15 5 0, color = green }
-    , { position = vec3i 5 15 0, color = red }
-    , { position = vec3i 30 40 0, color = blue }
-    )
+height : number
+height =
+    100
+
+
+pixelSize : number
+pixelSize =
+    5
+
+
+cube : Entity { position : Vec3 }
+cube =
+    let
+        frontFace =
+            [ ( { position = vec3 -1 -1 -1 }, { position = vec3 1 1 -1 }, { position = vec3 -1 1 -1 } )
+            , ( { position = vec3 -1 -1 -1 }, { position = vec3 1 -1 -1 }, { position = vec3 1 1 -1 } )
+            ]
+
+        topFace =
+            transformEntity (Mat4.makeRotate (pi / 2) (vec3 1 0 0)) frontFace
+
+        bottomFace =
+            transformEntity (Mat4.makeRotate (-pi / 2) (vec3 1 0 0)) frontFace
+
+        rightFace =
+            transformEntity (Mat4.makeRotate (-pi / 2) (vec3 0 1 0)) frontFace
+
+        leftFace =
+            transformEntity (Mat4.makeRotate (pi / 2) (vec3 0 1 0)) frontFace
+
+        backFace =
+            transformEntity (Mat4.makeRotate pi (vec3 0 1 0)) frontFace
+    in
+    frontFace
+        ++ topFace
+        ++ rightFace
+        ++ leftFace
+        ++ bottomFace
+        ++ backFace
 
 
 view : Model -> Html Msg
 view model =
     let
+        ndcTransform =
+            Renderer.ndcToScreen initBuffer
+
         angle =
             model.t
 
-        rotation =
-            Mat4.makeRotate angle (vec3 0 0 1)
+        transform =
+            Mat4.makeRotate angle (Vec3.normalize (vec3 2 1 1))
+                |> Mat4.mul (Mat4.makeScale3 0.5 0.5 0.5)
+                |> Mat4.mul ndcTransform
 
-        rotatedTriangle =
-            Raster.mapTriangle
-                (\att ->
-                    { att
-                        | position =
-                            att.position
-                                |> Vec3i.toVec
-                                |> Mat4.transform rotation
-                                |> Vec3i.fromVec
-                    }
-                )
-                someTriangle
+        entity =
+            cube
+                |> transformEntity transform
     in
     mainDiv
         [ Html.text ""
-        , renderBuffer (Raster.renderTriangle someTriangle initBuffer)
-
-        -- , renderBuffer (Raster.renderTriangle someTriangle2 initBuffer)
+        , renderBuffer (renderEntity entity initBuffer)
         ]
 
 
@@ -78,12 +97,14 @@ aColor c =
         ++ ")"
 
 
+renderEntity : List (Triangle { position : Vec3 }) -> Buffer -> Buffer
+renderEntity tris buffer =
+    tris
+        |> List.foldl (\tri buf -> Raster.renderTriangle tri blue buf) buffer
+
+
 renderBuffer : Buffer -> Html msg
 renderBuffer buffer =
-    let
-        pixelSize =
-            10
-    in
     div
         [ Html.style "display" "block"
         , Html.style "width" (String.fromInt (pixelSize * buffer.width) ++ "px")
@@ -94,11 +115,8 @@ renderBuffer buffer =
             |> Array.map
                 (\color ->
                     div
-                        [ Html.style "background-color" (aColor color)
-                        , Html.style "width" (String.fromFloat pixelSize ++ "px")
-                        , Html.style "height" (String.fromFloat pixelSize ++ "px")
-                        , Html.style "display" "inline-block"
-                        , Html.style "margin" "0"
+                        [ Html.class "pixel"
+                        , Html.style "background-color" (aColor color)
                         ]
                         []
                 )
@@ -109,8 +127,8 @@ renderBuffer buffer =
 initBuffer : Buffer
 initBuffer =
     Renderer.init
-        { width = 50
-        , height = 50
+        { width = width
+        , height = height
         , color = black
         }
 
@@ -154,9 +172,11 @@ main =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
-    -- Browser.Events.onAnimationFrameDelta Tick
-    Sub.none
+subscriptions _ =
+    Sub.batch
+        [ Sub.none
+        , Browser.Events.onAnimationFrameDelta Tick
+        ]
 
 
 
@@ -168,16 +188,15 @@ mainDiv =
     div
         [ Html.style "display" "flex"
         , Html.style "justify-content" "center"
+        , Html.style "align-items" "center"
+        , Html.style "flex-wrap" "wrap"
         , Html.style "padding" "36px 0"
         , Html.style "background-color" "#aaa"
-        , Html.style "height" "100%"
+        , Html.style "height" "500px"
+        , Html.style "font-size" "0"
         ]
 
 
-range : Int -> Int -> Array Int
-range minY maxY =
-    let
-        len =
-            maxY - minY + 1
-    in
-    Array.initialize len ((+) minY)
+transformEntity : Mat4 -> Entity { position : Vec3 } -> Entity { position : Vec3 }
+transformEntity mat entity =
+    List.map (Raster.mapTriangle (\{ position } -> { position = Mat4.transform mat position })) entity

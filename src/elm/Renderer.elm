@@ -7,12 +7,23 @@ module Renderer exposing
     , VertexShader
     , draw
     , init
+    , ndcToScreen
     , setPixel
     )
 
+import AltMath.Matrix4 as Mat4 exposing (Mat4)
 import AltMath.Vector3 exposing (Vec3)
 import Array exposing (Array)
 import Html exposing (Html)
+
+
+ndcToScreen : Buffer -> Mat4
+ndcToScreen buffer =
+    Mat4.makeScale3 0.5 0.5 1
+        |> Mat4.mul (Mat4.makeTranslate3 0.5 0.5 0)
+        |> Mat4.mul (Mat4.makeScale3 (toFloat buffer.width) (toFloat buffer.height) 1)
+        |> Mat4.mul (Mat4.makeScale3 1 -1 1)
+        |> Mat4.mul (Mat4.makeTranslate3 0 (toFloat buffer.height) 0)
 
 
 type alias Buffer =
@@ -55,7 +66,7 @@ type alias Color =
 
 
 type alias Entity attributes =
-    List ( attributes, attributes, attributes )
+    List (Triangle attributes)
 
 
 type alias Triangle attributes =
@@ -75,5 +86,5 @@ draw :
     -> VertexShader uniforms attributes varyings
     -> FragmentShader uniforms varyings
     -> Html msg
-draw entity fragmentShader pixelShader =
+draw _ _ _ =
     Debug.todo "todo"
