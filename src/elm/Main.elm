@@ -5,7 +5,7 @@ import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Array exposing (..)
 import Browser
 import Browser.Events
-import Color exposing (black, blue)
+import Color exposing (black, blue, red)
 import Html exposing (Html, div)
 import Html.Attributes as Html
 import Raster
@@ -31,8 +31,8 @@ cube : Entity { position : Vec3 }
 cube =
     let
         frontFace =
-            [ ( { position = vec3 -1 -1 -1 }, { position = vec3 1 1 -1 }, { position = vec3 -1 1 -1 } )
-            , ( { position = vec3 -1 -1 -1 }, { position = vec3 1 -1 -1 }, { position = vec3 1 1 -1 } )
+            [ ( ( { position = vec3 -1 -1 -1 }, { position = vec3 1 1 -1 }, { position = vec3 -1 1 -1 } ), red )
+            , ( ( { position = vec3 -1 -1 -1 }, { position = vec3 1 -1 -1 }, { position = vec3 1 1 -1 } ), blue )
             ]
 
         topFace =
@@ -97,10 +97,10 @@ aColor c =
         ++ ")"
 
 
-renderEntity : List (Triangle { position : Vec3 }) -> Buffer -> Buffer
+renderEntity : Entity { position : Vec3 } -> Buffer -> Buffer
 renderEntity tris buffer =
     tris
-        |> List.foldl (\tri buf -> Raster.renderTriangle tri blue buf) buffer
+        |> List.foldl (\( tri, color ) buf -> Raster.renderTriangle tri color buf) buffer
 
 
 renderBuffer : Buffer -> Html msg
@@ -199,4 +199,10 @@ mainDiv =
 
 transformEntity : Mat4 -> Entity { position : Vec3 } -> Entity { position : Vec3 }
 transformEntity mat entity =
-    List.map (Raster.mapTriangle (\{ position } -> { position = Mat4.transform mat position })) entity
+    entity
+        |> List.map
+            (\( tri, color ) ->
+                ( Raster.mapTriangle (\{ position } -> { position = Mat4.transform mat position }) tri
+                , color
+                )
+            )
