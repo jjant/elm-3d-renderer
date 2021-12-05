@@ -9,7 +9,7 @@ import Color exposing (black, blue, red)
 import Html exposing (Html, div)
 import Html.Attributes as Html
 import Raster
-import Renderer exposing (Buffer, Color, Entity, Triangle)
+import Renderer exposing (Buffer, Color, Entity)
 
 
 width : number
@@ -100,7 +100,7 @@ aColor c =
 renderEntity : Entity { position : Vec3 } -> Buffer -> Buffer
 renderEntity tris buffer =
     tris
-        |> List.foldl (\( tri, color ) buf -> Raster.renderTriangle tri color buf) buffer
+        |> List.foldl (\( tri, color ) buf -> Raster.renderTriangleLines tri color buf) buffer
 
 
 renderBuffer : Buffer -> Html msg

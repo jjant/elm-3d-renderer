@@ -2,6 +2,7 @@ module Raster exposing
     ( mapTriangle
     , renderLine
     , renderTriangle
+    , renderTriangleLines
     )
 
 {-| Coordinates in this module are pixel-coords following th standard convention:
@@ -22,6 +23,7 @@ The x-axis going right, y-axis going down, and the origin at the top left:
 -}
 
 import AltMath.Vector3 as Vec3 exposing (Vec3)
+import Color exposing (white)
 import Renderer exposing (Buffer, Color, Triangle)
 
 
@@ -219,19 +221,57 @@ sort3 f (( a, b, c ) as triplet) =
 ----------
 
 
+renderTriangleLines : Triangle { position : Vec3 } -> Color -> Buffer -> Buffer
+renderTriangleLines triangle color buffer =
+    let
+        ( v0, v1, v2 ) =
+            sort3 (\v -> v.position.x) triangle
+    in
+    buffer
+        |> renderLine { start = v0.position, end = v1.position } color
+        |> renderLine { start = v1.position, end = v2.position } color
+        |> renderLine { start = v0.position, end = v2.position } color
+        |> Renderer.setPixel (ceiling (v0.position.x - 0.5)) (ceiling (v0.position.y - 0.5)) white
+        |> Renderer.setPixel (ceiling (v1.position.x - 0.5)) (ceiling (v1.position.y - 0.5)) white
+        |> Renderer.setPixel (ceiling (v2.position.x - 0.5)) (ceiling (v2.position.y - 0.5)) white
+
+
 renderLine : { start : Vec3, end : Vec3 } -> Color -> Buffer -> Buffer
 renderLine { start, end } color buffer =
     let
         dx =
             end.x - start.x
+
+        dy =
+            end.y - start.y
+
+        slope =
+            dy / dx
+
+        xStart =
+            ceiling (start.x - 0.5)
+
+        xEnd =
+            -- The "scanrow" AFTER the last line drawn
+            ceiling (end.x - 0.5)
     in
     if dx == 0 then
         renderVerticalLine (round start.x) (round start.y) (round end.y) color buffer
 
     else
-        buffer
+        List.range xStart (xEnd - 1)
+            |> List.foldl
+                (\x buf ->
+                    let
+                        y =
+                            start.y + (slope * (toFloat x + 0.5 - start.x))
+                    in
+                    Renderer.setPixel x (ceiling (y - 0.5)) color buf
+                )
+                buffer
 
 
+renderVerticalLine : Int -> Int -> Int -> Color -> Buffer -> Buffer
 renderVerticalLine x y0 y1 color buffer =
     List.range y0 y1
         |> List.foldl
