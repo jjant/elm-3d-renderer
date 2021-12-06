@@ -7,13 +7,14 @@ import Array exposing (..)
 import Browser
 import Browser.Events
 import Color exposing (black, blue, green, red, white)
+import Example
 import Html exposing (Html, div)
 import Html.Attributes as Html
 import Raster
 import Renderer exposing (Buffer, Color, Entity)
 import TexVec exposing (TexVec)
 import Texture exposing (Texture)
-import Example
+
 
 width : number
 width =
@@ -35,8 +36,8 @@ cube =
     let
         frontFace =
             [ ( { position = vec3 -1 -1 -1, tc = vec2 0 0 }
-              , { position = vec3 1 1 -1, tc = vec2 1 1 }
               , { position = vec3 -1 1 -1, tc = vec2 0 1 }
+              , { position = vec3 1 1 -1, tc = vec2 1 1 }
               )
             , ( { position = vec3 -1 -1 -1, tc = vec2 0 0 }
               , { position = vec3 1 1 -1, tc = vec2 1 1 }
@@ -59,27 +60,25 @@ cube =
         backFace =
             transformEntity (Mat4.makeRotate pi (vec3 0 1 0)) frontFace
     in
-    frontFace
+    []
         ++ topFace
         ++ rightFace
         ++ leftFace
         ++ bottomFace
         ++ backFace
+        ++ frontFace
 
 
 view : Model -> Html Msg
 view model =
     let
-        ndcTransform =
-            Renderer.ndcToScreen initBuffer
-
         angle =
             model.t
 
         transform =
-            Mat4.makeRotate angle (Vec3.normalize (vec3 2 1 1))
+            Mat4.makeRotate angle (Vec3.normalize (vec3 1 2 1))
                 |> Mat4.mul (Mat4.makeScale3 0.5 0.5 0.5)
-                |> Mat4.mul ndcTransform
+                |> Mat4.mul (Mat4.makeTranslate3 0 0 20)
 
         entity =
             cube
@@ -113,8 +112,24 @@ myTexture =
 
 
 renderEntity : Entity TexVec -> Buffer -> Buffer
-renderEntity tris buffer =
-    tris
+renderEntity entity buffer =
+    let
+        ndcTransform =
+            Renderer.ndcToScreen buffer
+    in
+    entity
+        |> List.filter
+            (\( v0, v1, v2 ) ->
+                not
+                    ((Vec3.cross
+                        (Vec3.sub v1.position v0.position)
+                        (Vec3.sub v2.position v0.position)
+                        |> Vec3.dot v0.position
+                     )
+                        >= 0
+                    )
+            )
+        |> transformEntity ndcTransform
         |> List.foldl
             (\tri buf -> Raster.renderTriangleTex tri Example.crateTexture buf)
             buffer
