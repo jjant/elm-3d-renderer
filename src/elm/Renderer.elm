@@ -66,7 +66,7 @@ type alias Color =
 
 
 type alias Entity attributes =
-    List ( Triangle attributes, Color )
+    List (Triangle attributes)
 
 
 type alias Triangle attributes =

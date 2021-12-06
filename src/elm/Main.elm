@@ -1,16 +1,19 @@
 module Main exposing (main)
 
 import AltMath.Matrix4 as Mat4 exposing (Mat4)
+import AltMath.Vector2 exposing (vec2)
 import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Array exposing (..)
 import Browser
 import Browser.Events
-import Color exposing (black, blue, red)
+import Color exposing (black, blue, green, red, white)
 import Html exposing (Html, div)
 import Html.Attributes as Html
 import Raster
 import Renderer exposing (Buffer, Color, Entity)
-
+import TexVec exposing (TexVec)
+import Texture exposing (Texture)
+import Example
 
 width : number
 width =
@@ -27,12 +30,18 @@ pixelSize =
     5
 
 
-cube : Entity { position : Vec3 }
+cube : Entity TexVec
 cube =
     let
         frontFace =
-            [ ( ( { position = vec3 -1 -1 -1 }, { position = vec3 1 1 -1 }, { position = vec3 -1 1 -1 } ), red )
-            , ( ( { position = vec3 -1 -1 -1 }, { position = vec3 1 -1 -1 }, { position = vec3 1 1 -1 } ), blue )
+            [ ( { position = vec3 -1 -1 -1, tc = vec2 0 0 }
+              , { position = vec3 1 1 -1, tc = vec2 1 1 }
+              , { position = vec3 -1 1 -1, tc = vec2 0 1 }
+              )
+            , ( { position = vec3 -1 -1 -1, tc = vec2 0 0 }
+              , { position = vec3 1 1 -1, tc = vec2 1 1 }
+              , { position = vec3 1 -1 -1, tc = vec2 1 0 }
+              )
             ]
 
         topFace =
@@ -97,10 +106,18 @@ aColor c =
         ++ ")"
 
 
-renderEntity : Entity { position : Vec3 } -> Buffer -> Buffer
+myTexture =
+    Texture.init 10 10 green
+        |> Texture.set 5 5 red
+        |> Texture.set 2 3 white
+
+
+renderEntity : Entity TexVec -> Buffer -> Buffer
 renderEntity tris buffer =
     tris
-        |> List.foldl (\( tri, color ) buf -> Raster.renderTriangleLines tri color buf) buffer
+        |> List.foldl
+            (\tri buf -> Raster.renderTriangleTex tri Example.crateTexture buf)
+            buffer
 
 
 renderBuffer : Buffer -> Html msg
@@ -197,12 +214,10 @@ mainDiv =
         ]
 
 
-transformEntity : Mat4 -> Entity { position : Vec3 } -> Entity { position : Vec3 }
+transformEntity : Mat4 -> Entity TexVec -> Entity TexVec
 transformEntity mat entity =
     entity
         |> List.map
-            (\( tri, color ) ->
-                ( Raster.mapTriangle (\{ position } -> { position = Mat4.transform mat position }) tri
-                , color
-                )
+            (\tri ->
+                Raster.mapTriangle (\v -> { v | position = Mat4.transform mat v.position }) tri
             )

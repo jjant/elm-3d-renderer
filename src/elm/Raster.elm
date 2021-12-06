@@ -3,6 +3,7 @@ module Raster exposing
     , renderLine
     , renderTriangle
     , renderTriangleLines
+    , renderTriangleTex
     )
 
 {-| Coordinates in this module are pixel-coords following th standard convention:
@@ -22,9 +23,12 @@ The x-axis going right, y-axis going down, and the origin at the top left:
 
 -}
 
+import AltMath.Vector2 as Vec2 exposing (Vec2)
 import AltMath.Vector3 as Vec3 exposing (Vec3)
 import Color exposing (white)
 import Renderer exposing (Buffer, Color, Triangle)
+import TexVec exposing (TexVec)
+import Texture exposing (Texture)
 
 
 renderTriangle : Triangle { position : Vec3 } -> Color -> Buffer -> Buffer
@@ -277,5 +281,263 @@ renderVerticalLine x y0 y1 color buffer =
         |> List.foldl
             (\y buf ->
                 Renderer.setPixel x y color buf
+            )
+            buffer
+
+
+
+------- TEXTURE STUFF -------
+
+
+renderTriangleTex : Triangle TexVec -> Texture -> Buffer -> Buffer
+renderTriangleTex triangle texture buffer =
+    let
+        sortedTriangle =
+            triangle
+                |> sort3 (\attribute -> attribute.position.y)
+
+        ( v0, v1, v2 ) =
+            sortedTriangle
+    in
+    if v0.position.y == v1.position.y then
+        -- Natural flat top
+        let
+            ( actualV0, actualV1 ) =
+                ( v0, v1 )
+                    |> sort2 (\v -> v.position.x)
+        in
+        buffer
+            |> renderFlatTopTriangleTex actualV0 actualV1 v2 texture
+
+    else if v1.position.y == v2.position.y then
+        -- Natural flat bottom
+        let
+            ( actualV1, actualV2 ) =
+                ( v1, v2 )
+                    |> sort2 (\v -> v.position.x)
+        in
+        buffer
+            |> renderFlatBottomTriangleTex v0 actualV1 actualV2 texture
+
+    else
+        let
+            alpha =
+                (v1.position.y - v0.position.y) / (v2.position.y - v0.position.y)
+
+            vi =
+                TexVec.interpolate
+                    { t = alpha
+                    , from = v0
+                    , to = v2
+                    }
+        in
+        if v1.position.x < vi.position.x then
+            buffer
+                |> renderFlatBottomTriangleTex v0 v1 vi texture
+                |> renderFlatTopTriangleTex v1 vi v2 texture
+
+        else
+            buffer
+                |> renderFlatBottomTriangleTex v0 vi v1 texture
+                |> renderFlatTopTriangleTex vi v1 v2 texture
+
+
+renderFlatTopTriangleTex : TexVec -> TexVec -> TexVec -> Texture -> Buffer -> Buffer
+renderFlatTopTriangleTex v0 v1 v2 texture buffer =
+    let
+        m0 =
+            (v2.position.x - v0.position.x) / (v2.position.y - v0.position.y)
+
+        m1 =
+            (v2.position.x - v1.position.x) / (v2.position.y - v1.position.y)
+
+        yStart =
+            ceiling (v0.position.y - 0.5)
+
+        yEnd =
+            ceiling (v2.position.y - 0.5)
+
+        tcEdgeL =
+            Vec2.add v0.tc
+                (Vec2.scale (toFloat yStart + 0.5 - v1.position.y) tcEdgeStepL)
+
+        tcEdgeR =
+            Vec2.add v1.tc
+                (Vec2.scale (toFloat yStart + 0.5 - v1.position.y) tcEdgeStepR)
+
+        tcBottom =
+            v2.tc
+
+        tcEdgeStepL =
+            Vec2.sub tcBottom v0.tc
+                |> Vec2.scale (1 / (v2.position.y - v0.position.y))
+
+        tcEdgeStepR =
+            Vec2.sub tcBottom v1.tc
+                |> Vec2.scale (1 / (v2.position.y - v1.position.y))
+
+        texWidth =
+            toFloat (Texture.width texture)
+
+        texHeight =
+            toFloat (Texture.height texture)
+
+        texClampX =
+            texWidth - 1
+
+        texClampY =
+            texHeight - 1
+    in
+    List.range yStart (yEnd - 1)
+        |> List.foldl
+            (\y currentBuffer ->
+                let
+                    newTcEdgeL =
+                        Vec2.add tcEdgeL (Vec2.scale (toFloat (y - yStart)) tcEdgeStepL)
+
+                    newTcEdgeR =
+                        Vec2.add tcEdgeR (Vec2.scale (toFloat (y - yStart)) tcEdgeStepR)
+
+                    px0 =
+                        m0 * (toFloat y + 0.5 - v0.position.y) + v0.position.x
+
+                    px1 =
+                        m1 * (toFloat y + 0.5 - v1.position.y) + v1.position.x
+
+                    xStart =
+                        ceiling (px0 - 0.5)
+
+                    xEnd =
+                        ceiling (px1 - 0.5)
+
+                    tcScanStep =
+                        Vec2.scale (1 / (px1 - px0)) (Vec2.sub newTcEdgeR newTcEdgeL)
+
+                    tc =
+                        Vec2.add newTcEdgeL (Vec2.scale (toFloat xStart + 0.5 - px0) tcScanStep)
+                in
+                List.range xStart (xEnd - 1)
+                    |> List.foldl
+                        (\x currentCurrentBuffer ->
+                            let
+                                newTc =
+                                    Vec2.add tc (Vec2.scale (toFloat (x - xStart)) tcScanStep)
+
+                                color =
+                                    Texture.get
+                                        (round (min (newTc.x * texWidth) texClampX))
+                                        (round (min (newTc.y * texHeight) texClampY))
+                                        texture
+                            in
+                            Renderer.setPixel x y color currentCurrentBuffer
+                        )
+                        currentBuffer
+            )
+            buffer
+
+
+renderFlatBottomTriangleTex : TexVec -> TexVec -> TexVec -> Texture -> Buffer -> Buffer
+renderFlatBottomTriangleTex v0 v1 v2 texture buffer =
+    let
+        -- calculate slopes in screen space
+        s1 =
+            (v1.position.x - v0.position.x) / (v1.position.y - v0.position.y)
+
+        s2 =
+            (v2.position.x - v0.position.x) / (v2.position.y - v0.position.y)
+
+        -- calculate start and end scanlines
+        yStart =
+            ceiling (v0.position.y - 0.5)
+
+        yEnd =
+            -- The scanline AFTER the last line drawn
+            ceiling (v2.position.y - 0.5)
+
+        tcBottomL =
+            v1.tc
+
+        tcBottomR =
+            v2.tc
+
+        tcEdgeStepL =
+            Vec2.sub tcBottomL v0.tc
+                |> Vec2.scale (1 / (v1.position.y - v0.position.y))
+
+        tcEdgeStepR =
+            Vec2.sub tcBottomR v0.tc
+                |> Vec2.scale (1 / (v1.position.y - v0.position.y))
+
+        -- Pre-stepped coords
+        tcEdgeL =
+            Vec2.add v0.tc
+                (Vec2.scale (toFloat yStart + 0.5 - v0.position.y) tcEdgeStepL)
+
+        tcEdgeR =
+            Vec2.add v0.tc
+                (Vec2.scale (toFloat yStart + 0.5 - v0.position.y) tcEdgeStepR)
+
+        texWidth =
+            toFloat (Texture.width texture)
+
+        texHeight =
+            toFloat (Texture.height texture)
+
+        texClampX =
+            texWidth - 1
+
+        texClampY =
+            texHeight - 1
+    in
+    List.range yStart (yEnd - 1)
+        |> List.foldl
+            (\y currentBuffer ->
+                let
+                    newTcEdgeL =
+                        Vec2.add tcEdgeL (Vec2.scale (toFloat (y - yStart)) tcEdgeStepL)
+
+                    newTcEdgeR =
+                        Vec2.add tcEdgeR (Vec2.scale (toFloat (y - yStart)) tcEdgeStepR)
+
+                    -- calculate start and end points
+                    -- add 0.5 to y value because we're calculating based on pixel CENTERS
+                    px0 =
+                        v0.position.x + (s1 * (toFloat y + 0.5 - v0.position.y))
+
+                    px1 =
+                        v0.position.x + (s2 * (toFloat y + 0.5 - v0.position.y))
+
+                    -- calculate start and end pixels
+                    xStart =
+                        ceiling (px0 - 0.5)
+
+                    xEnd =
+                        -- the pixel AFTER the last pixel drawn
+                        ceiling (px1 - 0.5)
+
+                    tcScanStep =
+                        Vec2.scale (1 / (px1 - px0)) (Vec2.sub newTcEdgeR newTcEdgeL)
+
+                    tc =
+                        Vec2.add newTcEdgeL
+                            (Vec2.scale (toFloat xStart + 0.5 - px0) tcScanStep)
+                in
+                List.range xStart (xEnd - 1)
+                    |> List.foldl
+                        (\x currentCurrentBuffer ->
+                            let
+                                newTc =
+                                    Vec2.add tc (Vec2.scale (toFloat (x - xStart)) tcScanStep)
+
+                                color =
+                                    Texture.get
+                                        (round (clamp 0 texClampX (newTc.x * texWidth)))
+                                        (round (clamp 0 texClampY (newTc.y * texHeight)))
+                                        texture
+                            in
+                            currentCurrentBuffer
+                                |> Renderer.setPixel x y color
+                        )
+                        currentBuffer
             )
             buffer
