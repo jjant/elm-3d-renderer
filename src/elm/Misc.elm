@@ -11,7 +11,8 @@ unwrap message mA =
             a
 
         Nothing ->
-            Debug.todo message
+            -- Debug.todo message
+            unwrap message mA
 
 
 interpolate2 : Float -> Vec2 -> Vec2 -> Vec2

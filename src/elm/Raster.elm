@@ -28,12 +28,6 @@ import Misc
 import Renderer exposing (Buffer, Color, Impl, PixelShader, Triangle, Vertex)
 
 
-{-| TODO: Remove
--}
-type alias Uniforms =
-    {}
-
-
 
 ------- RASTERIZE TRIANGLES -------
 
@@ -41,10 +35,11 @@ type alias Uniforms =
 renderTriangle :
     Impl varyings
     -> Triangle (Vertex varyings)
-    -> PixelShader Uniforms varyings
+    -> uniforms
+    -> PixelShader uniforms varyings
     -> Buffer
     -> Buffer
-renderTriangle impl triangle pixelShader buffer =
+renderTriangle impl triangle uniforms pixelShader buffer =
     let
         sortedTriangle =
             triangle
@@ -61,7 +56,7 @@ renderTriangle impl triangle pixelShader buffer =
                     |> sort2 (\v -> v.position.x)
         in
         buffer
-            |> renderFlatTopTriangleTex impl ( actualV0, actualV1, v2 ) pixelShader
+            |> renderFlatTopTriangleTex impl ( actualV0, actualV1, v2 ) uniforms pixelShader
 
     else if v1.position.y == v2.position.y then
         -- Natural flat bottom
@@ -71,7 +66,7 @@ renderTriangle impl triangle pixelShader buffer =
                     |> sort2 (\v -> v.position.x)
         in
         buffer
-            |> renderFlatBottomTriangleTex impl ( v0, actualV1, actualV2 ) pixelShader
+            |> renderFlatBottomTriangleTex impl ( v0, actualV1, actualV2 ) uniforms pixelShader
 
     else
         let
@@ -83,19 +78,20 @@ renderTriangle impl triangle pixelShader buffer =
         in
         if v1.position.x < vi.position.x then
             buffer
-                |> renderFlatBottomTriangleTex impl ( v0, v1, vi ) pixelShader
-                |> renderFlatTopTriangleTex impl ( v1, vi, v2 ) pixelShader
+                |> renderFlatBottomTriangleTex impl ( v0, v1, vi ) uniforms pixelShader
+                |> renderFlatTopTriangleTex impl ( v1, vi, v2 ) uniforms pixelShader
 
         else
             buffer
-                |> renderFlatBottomTriangleTex impl ( v0, vi, v1 ) pixelShader
-                |> renderFlatTopTriangleTex impl ( vi, v1, v2 ) pixelShader
+                |> renderFlatBottomTriangleTex impl ( v0, vi, v1 ) uniforms pixelShader
+                |> renderFlatTopTriangleTex impl ( vi, v1, v2 ) uniforms pixelShader
 
 
 renderFlatTopTriangleTex :
     Impl varyings
     -> Triangle (Vertex varyings)
-    -> PixelShader Uniforms varyings
+    -> uniforms
+    -> PixelShader uniforms varyings
     -> Buffer
     -> Buffer
 renderFlatTopTriangleTex impl ( v0, v1, v2 ) pixelShader buffer =
@@ -118,10 +114,11 @@ renderFlatTopTriangleTex impl ( v0, v1, v2 ) pixelShader buffer =
 renderFlatBottomTriangleTex :
     Impl varyings
     -> Triangle (Vertex varyings)
-    -> PixelShader Uniforms varyings
+    -> uniforms
+    -> PixelShader uniforms varyings
     -> Buffer
     -> Buffer
-renderFlatBottomTriangleTex impl (( v0, v1, v2 ) as triangle) pixelShader buffer =
+renderFlatBottomTriangleTex impl (( v0, v1, v2 ) as triangle) uniforms pixelShader buffer =
     let
         delta_y =
             v2.position.y - v0.position.y
@@ -135,7 +132,7 @@ renderFlatBottomTriangleTex impl (( v0, v1, v2 ) as triangle) pixelShader buffer
         itEdge1 =
             v0
     in
-    renderFlatTriangleTex impl triangle ( dv0, dv1 ) itEdge1 pixelShader buffer
+    renderFlatTriangleTex impl triangle ( dv0, dv1 ) itEdge1 uniforms pixelShader buffer
 
 
 renderFlatTriangleTex :
@@ -143,10 +140,11 @@ renderFlatTriangleTex :
     -> Triangle (Vertex varyings)
     -> ( Vertex varyings, Vertex varyings )
     -> Vertex varyings
-    -> PixelShader Uniforms varyings
+    -> uniforms
+    -> PixelShader uniforms varyings
     -> Buffer
     -> Buffer
-renderFlatTriangleTex impl ( v0, v1, v2 ) ( dv0, dv1 ) itEdge1_ pixelShader buffer =
+renderFlatTriangleTex impl ( v0, v1, v2 ) ( dv0, dv1 ) itEdge1_ uniforms pixelShader buffer =
     let
         yStart =
             ceiling (v0.position.y - 0.5)
@@ -193,7 +191,7 @@ renderFlatTriangleTex impl ( v0, v1, v2 ) ( dv0, dv1 ) itEdge1_ pixelShader buff
                                     impl.add itcLine (impl.scale (toFloat (x - xStart)) dtcLine)
                             in
                             newBuf
-                                |> Renderer.setPixel x y (pixelShader {} newDtcLine)
+                                |> Renderer.setPixel x y (pixelShader uniforms newDtcLine)
                         )
                         buf
             )

@@ -110,5 +110,5 @@ draw :
     -> VertexShader uniforms attributes varyings
     -> PixelShader uniforms varyings
     -> Html msg
-draw _ _ _ =
-    Debug.todo "todo"
+draw a b c =
+    draw a b c

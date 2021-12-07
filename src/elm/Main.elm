@@ -1,11 +1,13 @@
 module Main exposing (main)
 
 import AltMath.Matrix4 as Mat4 exposing (Mat4)
+import AltMath.Vector2 as Vec2 exposing (Vec2, vec2)
 import AltMath.Vector3 as Vec3 exposing (vec3)
 import Array exposing (..)
 import Browser
 import Browser.Events
 import Color exposing (black, blue, green, red)
+import Examples.ShaderToy as ShaderToy exposing (Uniforms, Varyings)
 import Html exposing (Html, div)
 import Html.Attributes as Html
 import Misc
@@ -15,64 +17,51 @@ import Renderer exposing (Buffer, Color, Entity, Impl, PixelShader, Vertex)
 
 width : number
 width =
-    100
+    50
 
 
 height : number
 height =
-    100
+    50
 
 
 pixelSize : number
 pixelSize =
-    5
+    10
 
 
-type alias Uniforms =
-    {}
 
-
-type alias Varyings =
-    { color : Color
-    }
-
-
-cube : Entity (Vertex Varyings)
-cube =
-    let
-        frontFace =
-            [ ( { position = vec3 -1 -1 -1, varyings = { color = red } }
-              , { position = vec3 -1 1 -1, varyings = { color = green } }
-              , { position = vec3 1 1 -1, varyings = { color = blue } }
-              )
-            , ( { position = vec3 -1 -1 -1, varyings = { color = red } }
-              , { position = vec3 1 1 -1, varyings = { color = blue } }
-              , { position = vec3 1 -1 -1, varyings = { color = green } }
-              )
-            ]
-
-        topFace =
-            transformEntity (Mat4.makeRotate (pi / 2) (vec3 1 0 0)) frontFace
-
-        bottomFace =
-            transformEntity (Mat4.makeRotate (-pi / 2) (vec3 1 0 0)) frontFace
-
-        rightFace =
-            transformEntity (Mat4.makeRotate (-pi / 2) (vec3 0 1 0)) frontFace
-
-        leftFace =
-            transformEntity (Mat4.makeRotate (pi / 2) (vec3 0 1 0)) frontFace
-
-        backFace =
-            transformEntity (Mat4.makeRotate pi (vec3 0 1 0)) frontFace
-    in
-    []
-        ++ topFace
-        ++ rightFace
-        ++ leftFace
-        ++ bottomFace
-        ++ backFace
-        ++ frontFace
+-- cube : Entity (Vertex Varyings)
+-- cube =
+--     let
+--         frontFace =
+--             [ ( { position = vec3 -1 -1 -1, varyings = { color = red } }
+--               , { position = vec3 -1 1 -1, varyings = { color = green } }
+--               , { position = vec3 1 1 -1, varyings = { color = blue } }
+--               )
+--             , ( { position = vec3 -1 -1 -1, varyings = { color = red } }
+--               , { position = vec3 1 1 -1, varyings = { color = blue } }
+--               , { position = vec3 1 -1 -1, varyings = { color = green } }
+--               )
+--             ]
+--         topFace =
+--             transformEntity (Mat4.makeRotate (pi / 2) (vec3 1 0 0)) frontFace
+--         bottomFace =
+--             transformEntity (Mat4.makeRotate (-pi / 2) (vec3 1 0 0)) frontFace
+--         rightFace =
+--             transformEntity (Mat4.makeRotate (-pi / 2) (vec3 0 1 0)) frontFace
+--         leftFace =
+--             transformEntity (Mat4.makeRotate (pi / 2) (vec3 0 1 0)) frontFace
+--         backFace =
+--             transformEntity (Mat4.makeRotate pi (vec3 0 1 0)) frontFace
+--     in
+--     []
+--         ++ topFace
+--         ++ rightFace
+--         ++ leftFace
+--         ++ bottomFace
+--         ++ backFace
+--         ++ frontFace
 
 
 view : Model -> Html Msg
@@ -86,13 +75,28 @@ view model =
                 |> Mat4.mul (Mat4.makeScale3 0.5 0.5 0.5)
                 |> Mat4.mul (Mat4.makeTranslate3 0 0 20)
 
-        entity =
-            cube
-                |> transformEntity transform
+        -- entity =
+        --     cube
+        --         |> transformEntity transform
+        wholeScreen =
+            [ ( { position = vec3 -1 -1 5, varyings = { fragCoord = vec2 0 0 } }
+              , { position = vec3 -1 1 5, varyings = { fragCoord = vec2 0 height } }
+              , { position = vec3 1 1 5, varyings = { fragCoord = vec2 width height } }
+              )
+            , ( { position = vec3 -1 -1 5, varyings = { fragCoord = vec2 0 0 } }
+              , { position = vec3 1 1 5, varyings = { fragCoord = vec2 width height } }
+              , { position = vec3 1 -1 5, varyings = { fragCoord = vec2 width 0 } }
+              )
+            ]
+
+        uniforms =
+            { iTime = model.t
+            , iResolution = vec2 width height
+            }
     in
     mainDiv
         [ Html.text ""
-        , renderBuffer (renderEntity entity initBuffer)
+        , renderBuffer (renderEntity uniforms wholeScreen initBuffer)
         ]
 
 
@@ -111,8 +115,8 @@ aColor c =
         ++ ")"
 
 
-renderEntity : Entity (Vertex Varyings) -> Buffer -> Buffer
-renderEntity entity buffer =
+renderEntity : Uniforms -> Entity (Vertex Varyings) -> Buffer -> Buffer
+renderEntity uniforms entity buffer =
     let
         ndcTransform =
             Renderer.ndcToScreen buffer
@@ -135,7 +139,8 @@ renderEntity entity buffer =
                 Raster.renderTriangle
                     impl
                     tri
-                    pixelShader
+                    uniforms
+                    ShaderToy.pixelShader
                     buf
             )
             buffer
@@ -143,16 +148,11 @@ renderEntity entity buffer =
 
 impl : Impl Varyings
 impl =
-    { add = \v1 v2 -> { color = Vec3.add v1.color v2.color }
-    , sub = \v1 v2 -> { color = Vec3.sub v1.color v2.color }
-    , interpolate = \t v1 v2 -> { color = Misc.interpolate3 t v1.color v2.color }
-    , scale = \s v -> { color = Vec3.scale s v.color }
+    { add = \v1 v2 -> { fragCoord = Vec2.add v1.fragCoord v2.fragCoord }
+    , sub = \v1 v2 -> { fragCoord = Vec2.sub v1.fragCoord v2.fragCoord }
+    , interpolate = \t v1 v2 -> { fragCoord = Misc.interpolate2 t v1.fragCoord v2.fragCoord }
+    , scale = \s v -> { fragCoord = Vec2.scale s v.fragCoord }
     }
-
-
-pixelShader : PixelShader Uniforms Varyings
-pixelShader _ varyings =
-    varyings.color
 
 
 renderBuffer : Buffer -> Html msg
@@ -160,6 +160,8 @@ renderBuffer buffer =
     div
         [ Html.style "display" "block"
         , Html.style "width" (String.fromInt (pixelSize * buffer.width) ++ "px")
+
+        -- , Html.style "height" (String.fromInt (pixelSize * buffer.width) ++ "px")
         , Html.style "line-height" "0"
         , Html.style "padding" "12px"
         ]
@@ -168,6 +170,8 @@ renderBuffer buffer =
                 (\color ->
                     div
                         [ Html.class "pixel"
+                        , Html.style "width" (String.fromInt pixelSize ++ "px")
+                        , Html.style "height" (String.fromInt pixelSize ++ "px")
                         , Html.style "background-color" (aColor color)
                         ]
                         []
