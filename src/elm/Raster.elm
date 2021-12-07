@@ -158,8 +158,8 @@ renderFlatTriangleTex impl ( v0, v1, v2 ) ( dv0, dv1 ) itEdge1_ uniforms pixelSh
         itEdge1 =
             add impl itEdge1_ (scale impl (toFloat yStart + 0.5 - v0.position.y) dv1)
     in
-    List.range yStart (yEnd - 1)
-        |> List.foldl
+    ( yStart, yEnd - 1 )
+        |> Misc.for
             (\y buf ->
                 let
                     newItEdge0 =
@@ -183,8 +183,8 @@ renderFlatTriangleTex impl ( v0, v1, v2 ) ( dv0, dv1 ) itEdge1_ uniforms pixelSh
                         impl.add newItEdge0.varyings
                             (impl.scale (toFloat xStart + 0.5 - newItEdge0.position.x) dtcLine)
                 in
-                List.range xStart (xEnd - 1)
-                    |> List.foldl
+                ( xStart, xEnd - 1 )
+                    |> Misc.for
                         (\x newBuf ->
                             let
                                 newDtcLine =
@@ -293,8 +293,8 @@ renderLine { start, end } color buffer =
         renderVerticalLine (round start.x) (round start.y) (round end.y) color buffer
 
     else
-        List.range xStart (xEnd - 1)
-            |> List.foldl
+        ( xStart, xEnd - 1 )
+            |> Misc.for
                 (\x buf ->
                     let
                         y =

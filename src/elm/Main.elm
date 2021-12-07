@@ -7,7 +7,10 @@ import Array exposing (..)
 import Browser
 import Browser.Events
 import Color exposing (black, blue, green, red)
-import Examples.ShaderToy as ShaderToy exposing (Uniforms, Varyings)
+import Examples.Cube as Cube
+import Examples.ShaderToy as ShaderToy
+import Examples.ShaderToy.CreationBySilexars as CreationBySilexars
+import Examples.ShaderToy.PhantomStarByCineShader as PhantomStarByCineShader
 import Html exposing (Html, div)
 import Html.Attributes as Html
 import Misc
@@ -30,40 +33,6 @@ pixelSize =
     10
 
 
-
--- cube : Entity (Vertex Varyings)
--- cube =
---     let
---         frontFace =
---             [ ( { position = vec3 -1 -1 -1, varyings = { color = red } }
---               , { position = vec3 -1 1 -1, varyings = { color = green } }
---               , { position = vec3 1 1 -1, varyings = { color = blue } }
---               )
---             , ( { position = vec3 -1 -1 -1, varyings = { color = red } }
---               , { position = vec3 1 1 -1, varyings = { color = blue } }
---               , { position = vec3 1 -1 -1, varyings = { color = green } }
---               )
---             ]
---         topFace =
---             transformEntity (Mat4.makeRotate (pi / 2) (vec3 1 0 0)) frontFace
---         bottomFace =
---             transformEntity (Mat4.makeRotate (-pi / 2) (vec3 1 0 0)) frontFace
---         rightFace =
---             transformEntity (Mat4.makeRotate (-pi / 2) (vec3 0 1 0)) frontFace
---         leftFace =
---             transformEntity (Mat4.makeRotate (pi / 2) (vec3 0 1 0)) frontFace
---         backFace =
---             transformEntity (Mat4.makeRotate pi (vec3 0 1 0)) frontFace
---     in
---     []
---         ++ topFace
---         ++ rightFace
---         ++ leftFace
---         ++ bottomFace
---         ++ backFace
---         ++ frontFace
-
-
 view : Model -> Html Msg
 view model =
     let
@@ -74,29 +43,10 @@ view model =
             Mat4.makeRotate angle (Vec3.normalize (vec3 1 2 1))
                 |> Mat4.mul (Mat4.makeScale3 0.5 0.5 0.5)
                 |> Mat4.mul (Mat4.makeTranslate3 0 0 20)
-
-        -- entity =
-        --     cube
-        --         |> transformEntity transform
-        wholeScreen =
-            [ ( { position = vec3 -1 -1 5, varyings = { fragCoord = vec2 0 0 } }
-              , { position = vec3 -1 1 5, varyings = { fragCoord = vec2 0 height } }
-              , { position = vec3 1 1 5, varyings = { fragCoord = vec2 width height } }
-              )
-            , ( { position = vec3 -1 -1 5, varyings = { fragCoord = vec2 0 0 } }
-              , { position = vec3 1 1 5, varyings = { fragCoord = vec2 width height } }
-              , { position = vec3 1 -1 5, varyings = { fragCoord = vec2 width 0 } }
-              )
-            ]
-
-        uniforms =
-            { iTime = model.t
-            , iResolution = vec2 width height
-            }
     in
     mainDiv
         [ Html.text ""
-        , renderBuffer (renderEntity uniforms wholeScreen initBuffer)
+        , renderBuffer (renderEntity Cube.uniforms (transformEntity transform Cube.mesh) initBuffer)
         ]
 
 
@@ -115,7 +65,7 @@ aColor c =
         ++ ")"
 
 
-renderEntity : Uniforms -> Entity (Vertex Varyings) -> Buffer -> Buffer
+renderEntity : Cube.Uniforms -> Entity (Vertex Cube.Varyings) -> Buffer -> Buffer
 renderEntity uniforms entity buffer =
     let
         ndcTransform =
@@ -137,22 +87,13 @@ renderEntity uniforms entity buffer =
         |> List.foldl
             (\tri buf ->
                 Raster.renderTriangle
-                    impl
+                    Cube.impl
                     tri
                     uniforms
-                    ShaderToy.pixelShader
+                    Cube.pixelShader
                     buf
             )
             buffer
-
-
-impl : Impl Varyings
-impl =
-    { add = \v1 v2 -> { fragCoord = Vec2.add v1.fragCoord v2.fragCoord }
-    , sub = \v1 v2 -> { fragCoord = Vec2.sub v1.fragCoord v2.fragCoord }
-    , interpolate = \t v1 v2 -> { fragCoord = Misc.interpolate2 t v1.fragCoord v2.fragCoord }
-    , scale = \s v -> { fragCoord = Vec2.scale s v.fragCoord }
-    }
 
 
 renderBuffer : Buffer -> Html msg
@@ -214,6 +155,7 @@ update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
         Tick dtMilliseconds ->
+            -- ( { model | t = model.t + 16 / 1000 }, Cmd.none )
             ( { model | t = model.t + dtMilliseconds / 1000 }, Cmd.none )
 
 
