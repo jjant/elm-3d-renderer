@@ -2,10 +2,13 @@ module Renderer exposing
     ( Buffer
     , Color
     , Entity
-    , FragmentShader
+    , Impl
+    , PixelShader
     , Triangle
+    , Vertex
     , VertexShader
     , draw
+    , emptyImpl
     , init
     , ndcToScreen
     , setPixel
@@ -15,6 +18,10 @@ import AltMath.Matrix4 as Mat4 exposing (Mat4)
 import AltMath.Vector3 exposing (Vec3)
 import Array exposing (Array)
 import Html exposing (Html)
+
+
+type alias Vertex varyings =
+    { position : Vec3, varyings : varyings }
 
 
 ndcToScreen : Buffer -> Mat4
@@ -69,6 +76,23 @@ type alias Entity attributes =
     List (Triangle attributes)
 
 
+type alias Impl varyings =
+    { add : varyings -> varyings -> varyings
+    , sub : varyings -> varyings -> varyings
+    , interpolate : Float -> varyings -> varyings -> varyings
+    , scale : Float -> varyings -> varyings
+    }
+
+
+emptyImpl : Impl {}
+emptyImpl =
+    { add = \_ _ -> {}
+    , sub = \_ _ -> {}
+    , interpolate = \_ _ _ -> {}
+    , scale = \_ _ -> {}
+    }
+
+
 type alias Triangle attributes =
     ( attributes, attributes, attributes )
 
@@ -77,14 +101,14 @@ type alias VertexShader uniforms attributes varyings =
     uniforms -> attributes -> { position : Vec3, varyings : varyings }
 
 
-type alias FragmentShader uniforms varyings =
-    uniforms -> varyings -> { color : Vec3 }
+type alias PixelShader uniforms varyings =
+    uniforms -> varyings -> Color
 
 
 draw :
     Entity attributes
     -> VertexShader uniforms attributes varyings
-    -> FragmentShader uniforms varyings
+    -> PixelShader uniforms varyings
     -> Html msg
 draw _ _ _ =
     Debug.todo "todo"

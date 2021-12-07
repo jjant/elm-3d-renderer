@@ -1,19 +1,16 @@
 module Main exposing (main)
 
 import AltMath.Matrix4 as Mat4 exposing (Mat4)
-import AltMath.Vector2 exposing (vec2)
-import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
+import AltMath.Vector3 as Vec3 exposing (vec3)
 import Array exposing (..)
 import Browser
 import Browser.Events
-import Color exposing (black, blue, green, red, white)
-import Example
+import Color exposing (black, blue, green, red)
 import Html exposing (Html, div)
 import Html.Attributes as Html
+import Misc
 import Raster
-import Renderer exposing (Buffer, Color, Entity)
-import TexVec exposing (TexVec)
-import Texture exposing (Texture)
+import Renderer exposing (Buffer, Color, Entity, Impl, PixelShader, Vertex)
 
 
 width : number
@@ -31,17 +28,26 @@ pixelSize =
     5
 
 
-cube : Entity TexVec
+type alias Uniforms =
+    {}
+
+
+type alias Varyings =
+    { color : Color
+    }
+
+
+cube : Entity (Vertex Varyings)
 cube =
     let
         frontFace =
-            [ ( { position = vec3 -1 -1 -1, tc = vec2 0 0 }
-              , { position = vec3 -1 1 -1, tc = vec2 0 1 }
-              , { position = vec3 1 1 -1, tc = vec2 1 1 }
+            [ ( { position = vec3 -1 -1 -1, varyings = { color = red } }
+              , { position = vec3 -1 1 -1, varyings = { color = green } }
+              , { position = vec3 1 1 -1, varyings = { color = blue } }
               )
-            , ( { position = vec3 -1 -1 -1, tc = vec2 0 0 }
-              , { position = vec3 1 1 -1, tc = vec2 1 1 }
-              , { position = vec3 1 -1 -1, tc = vec2 1 0 }
+            , ( { position = vec3 -1 -1 -1, varyings = { color = red } }
+              , { position = vec3 1 1 -1, varyings = { color = blue } }
+              , { position = vec3 1 -1 -1, varyings = { color = green } }
               )
             ]
 
@@ -105,13 +111,7 @@ aColor c =
         ++ ")"
 
 
-myTexture =
-    Texture.init 10 10 green
-        |> Texture.set 5 5 red
-        |> Texture.set 2 3 white
-
-
-renderEntity : Entity TexVec -> Buffer -> Buffer
+renderEntity : Entity (Vertex Varyings) -> Buffer -> Buffer
 renderEntity entity buffer =
     let
         ndcTransform =
@@ -131,8 +131,28 @@ renderEntity entity buffer =
             )
         |> transformEntity ndcTransform
         |> List.foldl
-            (\tri buf -> Raster.renderTriangleTex tri Example.crateTexture buf)
+            (\tri buf ->
+                Raster.renderTriangle
+                    impl
+                    tri
+                    pixelShader
+                    buf
+            )
             buffer
+
+
+impl : Impl Varyings
+impl =
+    { add = \v1 v2 -> { color = Vec3.add v1.color v2.color }
+    , sub = \v1 v2 -> { color = Vec3.sub v1.color v2.color }
+    , interpolate = \t v1 v2 -> { color = Misc.interpolate3 t v1.color v2.color }
+    , scale = \s v -> { color = Vec3.scale s v.color }
+    }
+
+
+pixelShader : PixelShader Uniforms Varyings
+pixelShader _ varyings =
+    varyings.color
 
 
 renderBuffer : Buffer -> Html msg
@@ -229,7 +249,7 @@ mainDiv =
         ]
 
 
-transformEntity : Mat4 -> Entity TexVec -> Entity TexVec
+transformEntity : Mat4 -> Entity (Vertex varyings) -> Entity (Vertex varyings)
 transformEntity mat entity =
     entity
         |> List.map

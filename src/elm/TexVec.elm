@@ -8,6 +8,7 @@ module TexVec exposing
 
 import AltMath.Vector2 as Vec2 exposing (Vec2)
 import AltMath.Vector3 as Vec3 exposing (Vec3)
+import Misc
 
 
 type alias TexVec =
@@ -16,20 +17,10 @@ type alias TexVec =
     }
 
 
-interpolate2 : Float -> Vec2 -> Vec2 -> Vec2
-interpolate2 t from to =
-    Vec2.add from (Vec2.scale t (Vec2.sub to from))
-
-
-interpolate3 : Float -> Vec3 -> Vec3 -> Vec3
-interpolate3 t from to =
-    Vec3.add from (Vec3.scale t (Vec3.sub to from))
-
-
 interpolate : { t : Float, from : TexVec, to : TexVec } -> TexVec
 interpolate { from, to, t } =
-    { position = interpolate3 t from.position to.position
-    , tc = interpolate2 t from.tc to.tc
+    { position = Misc.interpolate3 t from.position to.position
+    , tc = Misc.interpolate2 t from.tc to.tc
     }
 
 
