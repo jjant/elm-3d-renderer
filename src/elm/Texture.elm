@@ -41,9 +41,6 @@ get x y texture =
     let
         index =
             x + width texture * y
-
-        maxIndex =
-            Array.length texture.data
     in
     Array.get index texture.data
-        |> Misc.unwrap ("Texture.get " ++ Debug.toString ( index, maxIndex ))
+        |> Misc.unwrap ("Texture.get " ++ Debug.toString ( x, y ))
