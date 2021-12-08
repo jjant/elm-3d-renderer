@@ -1,7 +1,9 @@
 module Examples.ShaderToy exposing
-    ( Mat2
+    ( Attributes
+    , Mat2
     , Uniforms
     , Varyings
+    , vertexShader
     , abs3
     , div2
     , impl
@@ -21,7 +23,21 @@ module Examples.ShaderToy exposing
 import AltMath.Vector2 as Vec2 exposing (Vec2, vec2)
 import AltMath.Vector3 exposing (Vec3, vec3)
 import Misc
-import Renderer exposing (Entity, Impl, Vertex)
+import Renderer exposing (Impl, Mesh, VertexShader)
+
+
+type alias Uniforms =
+    { iTime : Float
+    , iResolution : Vec2
+    }
+
+
+type alias Attributes =
+    {}
+
+
+type alias Varyings =
+    { fragCoord : Vec2 }
 
 
 uniforms : { iTime : Float, iResolution : Vec2 } -> Uniforms
@@ -29,7 +45,7 @@ uniforms u =
     u
 
 
-mesh : { width : Float, height : Float } -> Entity (Vertex Varyings)
+mesh : { width : Float, height : Float } -> Mesh Varyings
 mesh { width, height } =
     [ ( { position = vec3 -1 -1 5, varyings = { fragCoord = vec2 0 0 } }
       , { position = vec3 -1 1 5, varyings = { fragCoord = vec2 0 height } }
@@ -49,6 +65,16 @@ impl =
     , interpolate = \t v1 v2 -> { fragCoord = Misc.interpolate2 t v1.fragCoord v2.fragCoord }
     , scale = \s v -> { fragCoord = Vec2.scale s v.fragCoord }
     }
+
+
+vertexShader : VertexShader Uniforms Attributes Varyings
+vertexShader _ _ =
+    -- TODO: Fix after introducing vertex shaders
+    { position = vec3 0 0 0, varyings = { fragCoord = vec2 0 0 } }
+
+
+
+---- UTILITY FUNCTIONS USUALLY USED IN GLSL ----
 
 
 div2 : Vec2 -> Vec2 -> Vec2
@@ -126,16 +152,6 @@ mod x y =
 mod2f : Vec2 -> Float -> Vec2
 mod2f v y =
     vec2 (mod v.x y) (mod v.y y)
-
-
-type alias Uniforms =
-    { iTime : Float
-    , iResolution : Vec2
-    }
-
-
-type alias Varyings =
-    { fragCoord : Vec2 }
 
 
 xy : Vec3 -> Vec2

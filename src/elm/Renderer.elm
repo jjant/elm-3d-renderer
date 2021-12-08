@@ -3,34 +3,51 @@ module Renderer exposing
     , Color
     , Entity
     , Impl
+    , Mesh
     , PixelShader
     , Triangle
     , Vertex
     , VertexShader
-    , draw
     , emptyImpl
     , init
     , ndcToScreen
+    , render
     , setPixel
+    , transformMesh
     )
 
 import AltMath.Matrix4 as Mat4 exposing (Mat4)
-import AltMath.Vector3 exposing (Vec3)
+import AltMath.Vector3 as Vec3 exposing (Vec3)
 import Array exposing (Array)
 import Html exposing (Html)
+import Misc
+
+
+{-| The core type that defines a "thing" that can be rendered.
+-}
+type alias Entity uniforms attributes varyings =
+    { uniforms : uniforms
+
+    -- TODO: This should be
+    --      mesh: Mesh attributes
+    -- but we need vertex shaders implemented first
+    , mesh : Mesh varyings
+    , vertexShader : VertexShader uniforms attributes varyings
+    , pixelShader : PixelShader uniforms varyings
+    , impl : Impl varyings
+    }
 
 
 type alias Vertex varyings =
     { position : Vec3, varyings : varyings }
 
 
-ndcToScreen : Buffer -> Mat4
-ndcToScreen buffer =
-    Mat4.makeScale3 0.5 0.5 1
-        |> Mat4.mul (Mat4.makeTranslate3 0.5 0.5 0)
-        |> Mat4.mul (Mat4.makeScale3 (toFloat buffer.width) (toFloat buffer.height) 1)
-        |> Mat4.mul (Mat4.makeScale3 1 -1 1)
-        |> Mat4.mul (Mat4.makeTranslate3 0 (toFloat buffer.height) 0)
+type alias Triangle attributes =
+    ( attributes, attributes, attributes )
+
+
+type alias Mesh attributes =
+    List (Triangle (Vertex attributes))
 
 
 type alias Buffer =
@@ -72,10 +89,6 @@ type alias Color =
     Vec3
 
 
-type alias Entity attributes =
-    List (Triangle attributes)
-
-
 type alias Impl varyings =
     { add : varyings -> varyings -> varyings
     , sub : varyings -> varyings -> varyings
@@ -93,10 +106,6 @@ emptyImpl =
     }
 
 
-type alias Triangle attributes =
-    ( attributes, attributes, attributes )
-
-
 type alias VertexShader uniforms attributes varyings =
     uniforms -> attributes -> { position : Vec3, varyings : varyings }
 
@@ -105,10 +114,34 @@ type alias PixelShader uniforms varyings =
     uniforms -> varyings -> Color
 
 
-draw :
-    Entity attributes
-    -> VertexShader uniforms attributes varyings
-    -> PixelShader uniforms varyings
-    -> Html msg
-draw a b c =
-    draw a b c
+render : List (Html.Attribute msg) -> Entity uniforms attributes varyings -> Html msg
+render atts entity =
+    render atts entity
+
+
+
+--------------
+
+
+ndcToScreen : Buffer -> Mat4
+ndcToScreen buffer =
+    Mat4.makeScale3 0.5 0.5 1
+        |> Mat4.mul (Mat4.makeTranslate3 0.5 0.5 0)
+        |> Mat4.mul (Mat4.makeScale3 (toFloat buffer.width) (toFloat buffer.height) 1)
+        |> Mat4.mul (Mat4.makeScale3 1 -1 1)
+        |> Mat4.mul (Mat4.makeTranslate3 0 (toFloat buffer.height) 0)
+
+
+transformMesh : Mat4 -> Mesh varyings -> Mesh varyings
+transformMesh mat entity =
+    entity
+        |> List.map
+            (\tri ->
+                mapTriangle (\v -> { v | position = Mat4.transform mat v.position }) tri
+            )
+
+
+mapTriangle : (a -> b) -> Triangle a -> Triangle b
+mapTriangle =
+    Misc.mapThree
+

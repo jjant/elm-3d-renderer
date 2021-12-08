@@ -6,16 +6,13 @@ import AltMath.Vector3 as Vec3 exposing (vec3)
 import Array exposing (..)
 import Browser
 import Browser.Events
-import Color exposing (black, blue, green, red)
+import ElmGL
 import Examples.Cube as Cube
 import Examples.ShaderToy as ShaderToy
 import Examples.ShaderToy.CreationBySilexars as CreationBySilexars
 import Examples.ShaderToy.PhantomStarByCineShader as PhantomStarByCineShader
 import Html exposing (Html, div)
 import Html.Attributes as Html
-import Misc
-import Raster
-import Renderer exposing (Buffer, Color, Entity, Impl, PixelShader, Vertex)
 
 
 width : number
@@ -33,6 +30,11 @@ pixelSize =
     10
 
 
+resolution : Vec2
+resolution =
+    vec2 width height
+
+
 view : Model -> Html Msg
 view model =
     let
@@ -45,93 +47,14 @@ view model =
                 |> Mat4.mul (Mat4.makeTranslate3 0 0 20)
     in
     mainDiv
-        [ Html.text ""
-        , renderBuffer (renderEntity Cube.uniforms (transformEntity transform Cube.mesh) initBuffer)
+        [ Cube.entity transform
+            |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
+
+        -- , PhantomStarByCineShader.entity { iTime = model.t, iResolution = resolution }
+        --     |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
+        , CreationBySilexars.entity { iTime = model.t, iResolution = resolution }
+            |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
         ]
-
-
-
----- API ----
-
-
-aColor : Color -> String
-aColor c =
-    "rgb("
-        ++ String.fromFloat c.x
-        ++ ", "
-        ++ String.fromFloat c.y
-        ++ ", "
-        ++ String.fromFloat c.z
-        ++ ")"
-
-
-renderEntity : Cube.Uniforms -> Entity (Vertex Cube.Varyings) -> Buffer -> Buffer
-renderEntity uniforms entity buffer =
-    let
-        ndcTransform =
-            Renderer.ndcToScreen buffer
-    in
-    entity
-        |> List.filter
-            (\( v0, v1, v2 ) ->
-                not
-                    ((Vec3.cross
-                        (Vec3.sub v1.position v0.position)
-                        (Vec3.sub v2.position v0.position)
-                        |> Vec3.dot v0.position
-                     )
-                        >= 0
-                    )
-            )
-        |> transformEntity ndcTransform
-        |> List.foldl
-            (\tri buf ->
-                Raster.renderTriangle
-                    Cube.impl
-                    tri
-                    uniforms
-                    Cube.pixelShader
-                    buf
-            )
-            buffer
-
-
-renderBuffer : Buffer -> Html msg
-renderBuffer buffer =
-    div
-        [ Html.style "display" "block"
-        , Html.style "width" (String.fromInt (pixelSize * buffer.width) ++ "px")
-
-        -- , Html.style "height" (String.fromInt (pixelSize * buffer.width) ++ "px")
-        , Html.style "line-height" "0"
-        , Html.style "padding" "12px"
-        ]
-        (buffer.data
-            |> Array.map
-                (\color ->
-                    div
-                        [ Html.class "pixel"
-                        , Html.style "width" (String.fromInt pixelSize ++ "px")
-                        , Html.style "height" (String.fromInt pixelSize ++ "px")
-                        , Html.style "background-color" (aColor color)
-                        ]
-                        []
-                )
-            |> Array.toList
-        )
-
-
-initBuffer : Buffer
-initBuffer =
-    Renderer.init
-        { width = width
-        , height = height
-        , color = black
-        }
-
-
-
--------------
 
 
 type alias Flags =
@@ -193,12 +116,3 @@ mainDiv =
         , Html.style "height" "500px"
         , Html.style "font-size" "0"
         ]
-
-
-transformEntity : Mat4 -> Entity (Vertex varyings) -> Entity (Vertex varyings)
-transformEntity mat entity =
-    entity
-        |> List.map
-            (\tri ->
-                Raster.mapTriangle (\v -> { v | position = Mat4.transform mat v.position }) tri
-            )

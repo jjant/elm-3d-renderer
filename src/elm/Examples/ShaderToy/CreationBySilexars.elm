@@ -1,15 +1,23 @@
-module Examples.ShaderToy.CreationBySilexars exposing (pixelShader)
-
-import AltMath.Vector2 as Vec2 exposing (vec2)
-import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
-import Examples.ShaderToy as ShaderToy exposing (Uniforms, Varyings, div2)
-import Misc
-import Renderer exposing (PixelShader)
-
-
+module Examples.ShaderToy.CreationBySilexars exposing (entity)
 
 -- https://www.shadertoy.com/view/XsXXDn
 -- If you intend to reuse this shader, please add credits to 'Danilo Guanabara'
+
+import AltMath.Vector2 as Vec2 exposing (vec2)
+import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
+import Examples.ShaderToy as ShaderToy exposing (Attributes, Uniforms, Varyings, div2)
+import Misc
+import Renderer exposing (Entity, PixelShader)
+
+
+entity : Uniforms -> Entity Uniforms Attributes Varyings
+entity uniforms =
+    { uniforms = uniforms
+    , mesh = ShaderToy.mesh { width = uniforms.iResolution.x, height = uniforms.iResolution.y }
+    , vertexShader = ShaderToy.vertexShader
+    , pixelShader = pixelShader
+    , impl = ShaderToy.impl
+    }
 
 
 setCoord : Int -> Float -> Vec3 -> Vec3
@@ -65,5 +73,5 @@ pixelShader { iResolution, iTime } { fragCoord } =
                     ( vec3 0 0 0, 0, iTime )
     in
     c_
-        -- |> Vec3.scale (1 / (iTime * l_))
+        |> Vec3.scale (1 / l_)
         |> Vec3.scale 255

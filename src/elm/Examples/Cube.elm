@@ -1,10 +1,8 @@
 module Examples.Cube exposing
-    ( Uniforms
+    ( Attributes
+    , Uniforms
     , Varyings
-    , impl
-    , mesh
-    , pixelShader
-    , uniforms
+    , entity
     )
 
 import AltMath.Matrix4 as Mat4 exposing (Mat4)
@@ -12,16 +10,14 @@ import AltMath.Vector3 as Vec3 exposing (vec3)
 import Color exposing (..)
 import Examples.ShaderToy exposing (Uniforms)
 import Misc
-import Raster
-import Renderer exposing (Color, Entity, Impl, PixelShader, Vertex)
+import Renderer exposing (Color, Entity, Impl, Mesh, PixelShader, VertexShader)
 
 
-type alias Uniforms =
+type alias Attributes =
     {}
 
 
-uniforms : Uniforms
-uniforms =
+type alias Uniforms =
     {}
 
 
@@ -30,7 +26,24 @@ type alias Varyings =
     }
 
 
-mesh : Entity (Vertex Varyings)
+entity : Mat4 -> Entity Uniforms Attributes Varyings
+entity transform =
+    { uniforms = uniforms
+    , mesh =
+        mesh
+            |> Renderer.transformMesh transform
+    , vertexShader = vertexShader
+    , pixelShader = pixelShader
+    , impl = impl
+    }
+
+
+uniforms : Uniforms
+uniforms =
+    {}
+
+
+mesh : Mesh Varyings
 mesh =
     let
         frontFace =
@@ -45,19 +58,19 @@ mesh =
             ]
 
         topFace =
-            transformEntity (Mat4.makeRotate (pi / 2) (vec3 1 0 0)) frontFace
+            Renderer.transformMesh (Mat4.makeRotate (pi / 2) (vec3 1 0 0)) frontFace
 
         bottomFace =
-            transformEntity (Mat4.makeRotate (-pi / 2) (vec3 1 0 0)) frontFace
+            Renderer.transformMesh (Mat4.makeRotate (-pi / 2) (vec3 1 0 0)) frontFace
 
         rightFace =
-            transformEntity (Mat4.makeRotate (-pi / 2) (vec3 0 1 0)) frontFace
+            Renderer.transformMesh (Mat4.makeRotate (-pi / 2) (vec3 0 1 0)) frontFace
 
         leftFace =
-            transformEntity (Mat4.makeRotate (pi / 2) (vec3 0 1 0)) frontFace
+            Renderer.transformMesh (Mat4.makeRotate (pi / 2) (vec3 0 1 0)) frontFace
 
         backFace =
-            transformEntity (Mat4.makeRotate pi (vec3 0 1 0)) frontFace
+            Renderer.transformMesh (Mat4.makeRotate pi (vec3 0 1 0)) frontFace
     in
     []
         ++ topFace
@@ -68,18 +81,16 @@ mesh =
         ++ frontFace
 
 
+vertexShader : VertexShader Uniforms Attributes Varyings
+vertexShader _ _ =
+    { position = vec3 0 0 0
+    , varyings = { color = vec3 0 0 0 }
+    }
+
+
 pixelShader : PixelShader Uniforms Varyings
 pixelShader _ { color } =
     color
-
-
-transformEntity : Mat4 -> Entity (Vertex varyings) -> Entity (Vertex varyings)
-transformEntity mat entity =
-    entity
-        |> List.map
-            (\tri ->
-                Raster.mapTriangle (\v -> { v | position = Mat4.transform mat v.position }) tri
-            )
 
 
 impl : Impl Varyings

@@ -1,12 +1,20 @@
-module Examples.ShaderToy.PhantomStarByCineShader exposing (pixelShader)
+module Examples.ShaderToy.PhantomStarByCineShader exposing (entity)
 
 import AltMath.Vector2 as Vec2 exposing (Vec2, vec2)
 import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
-import Examples.ShaderToy exposing (Uniforms, Varyings, abs3, max3, mod, pmod, rot, transform2)
+import Examples.ShaderToy as ShaderToy exposing (Uniforms, Attributes, Varyings, abs3, max3, mod, pmod, rot, transform2)
 import Misc
 import Renderer exposing (PixelShader)
+import Renderer exposing (Entity)
 
-
+entity : Uniforms -> Entity Uniforms Attributes Varyings
+entity uniforms =
+    { uniforms = uniforms
+    , mesh = ShaderToy.mesh {width = uniforms.iResolution.x, height = uniforms.iResolution.y}
+    , vertexShader = ShaderToy.vertexShader
+    , pixelShader = pixelShader
+    , impl = ShaderToy.impl
+    }
 
 -- Phantom Star for CineShader
 -- https://www.shadertoy.com/view/ttKGDt

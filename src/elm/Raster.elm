@@ -1,6 +1,5 @@
 module Raster exposing
-    ( mapTriangle
-    , renderLine
+    ( renderLine
     , renderTriangle
     , renderTriangleLines
     )
@@ -43,7 +42,7 @@ renderTriangle impl triangle uniforms pixelShader buffer =
     let
         sortedTriangle =
             triangle
-                |> sort3 (\attribute -> attribute.position.y)
+                |> Misc.sort3 (\attribute -> attribute.position.y)
 
         ( v0, v1, v2 ) =
             sortedTriangle
@@ -53,7 +52,7 @@ renderTriangle impl triangle uniforms pixelShader buffer =
         let
             ( actualV0, actualV1 ) =
                 ( v0, v1 )
-                    |> sort2 (\v -> v.position.x)
+                    |> Misc.sort2 (\v -> v.position.x)
         in
         buffer
             |> renderFlatTopTriangleTex impl ( actualV0, actualV1, v2 ) uniforms pixelShader
@@ -63,7 +62,7 @@ renderTriangle impl triangle uniforms pixelShader buffer =
         let
             ( actualV1, actualV2 ) =
                 ( v1, v2 )
-                    |> sort2 (\v -> v.position.x)
+                    |> Misc.sort2 (\v -> v.position.x)
         in
         buffer
             |> renderFlatBottomTriangleTex impl ( v0, actualV1, actualV2 ) uniforms pixelShader
@@ -202,54 +201,6 @@ renderFlatTriangleTex impl ( v0, v1, v2 ) ( dv0, dv1 ) itEdge1_ uniforms pixelSh
 ---- MISC ----
 
 
-mapThree : (a -> b) -> ( a, a, a ) -> ( b, b, b )
-mapThree f ( a0, a1, a2 ) =
-    ( f a0, f a1, f a2 )
-
-
-mapTriangle : (a -> b) -> Triangle a -> Triangle b
-mapTriangle =
-    mapThree
-
-
-sort2 : (a -> comparable) -> ( a, a ) -> ( a, a )
-sort2 f ( a, b ) =
-    if f a <= f b then
-        ( a, b )
-
-    else
-        ( b, a )
-
-
-{-| Taken from <https://www.reddit.com/r/programminghorror/comments/fpu16c/nicest_way_to_sort_3_numbers/>
--}
-sort3 : (a -> comparable) -> ( a, a, a ) -> ( a, a, a )
-sort3 f (( a, b, c ) as triplet) =
-    let
-        ( fa, fb, fc ) =
-            mapThree f triplet
-    in
-    if fa < fb then
-        if fa < fc then
-            if fb < fc then
-                ( a, b, c )
-
-            else
-                ( a, c, b )
-
-        else
-            ( c, a, b )
-
-    else if fa > fc then
-        if fb > fc then
-            ( c, b, a )
-
-        else
-            ( b, c, a )
-
-    else
-        ( b, a, c )
-
 
 
 ----- WIREFRAME DRAWING------
@@ -259,7 +210,7 @@ renderTriangleLines : Triangle (Vertex varyings) -> Color -> Buffer -> Buffer
 renderTriangleLines triangle color buffer =
     let
         ( v0, v1, v2 ) =
-            sort3 (\v -> v.position.x) triangle
+            Misc.sort3 (\v -> v.position.x) triangle
     in
     buffer
         |> renderLine { start = v0.position, end = v1.position } color
