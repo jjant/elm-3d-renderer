@@ -1,21 +1,22 @@
 module ElmGL exposing (render)
 
-import AltMath.Vector3 as Vec3 exposing (Vec3)
+import AltMath.Vector3 as Vec3
 import Array
 import Color exposing (black)
 import Html exposing (Html)
 import Html.Attributes as Html
 import Raster
-import Renderer exposing (Buffer, Color, Entity)
+import Renderer exposing (Buffer, Color, Entity, Triangle, Vertex)
 
 
 renderToBuffer : Entity uniforms attributes varyings -> Buffer -> Buffer
-renderToBuffer { uniforms, mesh, impl, pixelShader } buffer =
+renderToBuffer { uniforms, mesh, impl, pixelShader, vertexShader } buffer =
     let
         ndcTransform =
             Renderer.ndcToScreen buffer
     in
     mesh
+        |> List.map (Renderer.mapTriangle (vertexShader uniforms))
         |> cullTriangles
         |> Renderer.transformMesh ndcTransform
         |> List.foldl
@@ -73,6 +74,7 @@ aColor c =
 ---- CULL BACKFACES ----
 
 
+cullTriangles : List (Triangle (Vertex a)) -> List (Triangle (Vertex a))
 cullTriangles triangleList =
     triangleList
         |> List.filter

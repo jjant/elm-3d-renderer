@@ -36,9 +36,15 @@ set x y color texture =
     }
 
 
-get : Int -> Int -> Texture -> Color
-get x y texture =
+get : Float -> Float -> Texture -> Color
+get xF yF texture =
     let
+        x =
+            round (xF * toFloat (width texture))
+
+        y =
+            round (yF * toFloat (height texture))
+
         index =
             x + width texture * y
     in

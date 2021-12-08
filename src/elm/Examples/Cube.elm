@@ -6,7 +6,7 @@ module Examples.Cube exposing
     )
 
 import AltMath.Matrix4 as Mat4 exposing (Mat4)
-import AltMath.Vector3 as Vec3 exposing (vec3)
+import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Color exposing (..)
 import Examples.ShaderToy exposing (Uniforms)
 import Misc
@@ -14,11 +14,11 @@ import Renderer exposing (Color, Entity, Impl, Mesh, PixelShader, VertexShader)
 
 
 type alias Attributes =
-    {}
+    { position : Vec3, color : Vec3 }
 
 
 type alias Uniforms =
-    {}
+    { time : Float }
 
 
 type alias Varyings =
@@ -26,34 +26,27 @@ type alias Varyings =
     }
 
 
-entity : Mat4 -> Entity Uniforms Attributes Varyings
-entity transform =
+entity : Uniforms -> Entity Uniforms Attributes Varyings
+entity uniforms =
     { uniforms = uniforms
-    , mesh =
-        mesh
-            |> Renderer.transformMesh transform
+    , mesh = mesh
     , vertexShader = vertexShader
     , pixelShader = pixelShader
     , impl = impl
     }
 
 
-uniforms : Uniforms
-uniforms =
-    {}
-
-
-mesh : Mesh Varyings
+mesh : Mesh Attributes
 mesh =
     let
         frontFace =
-            [ ( { position = vec3 -1 -1 -1, varyings = { color = red } }
-              , { position = vec3 -1 1 -1, varyings = { color = green } }
-              , { position = vec3 1 1 -1, varyings = { color = blue } }
+            [ ( { position = vec3 -1 -1 -1, color = red }
+              , { position = vec3 -1 1 -1, color = green }
+              , { position = vec3 1 1 -1, color = blue }
               )
-            , ( { position = vec3 -1 -1 -1, varyings = { color = red } }
-              , { position = vec3 1 1 -1, varyings = { color = blue } }
-              , { position = vec3 1 -1 -1, varyings = { color = green } }
+            , ( { position = vec3 -1 -1 -1, color = red }
+              , { position = vec3 1 1 -1, color = blue }
+              , { position = vec3 1 -1 -1, color = green }
               )
             ]
 
@@ -82,9 +75,15 @@ mesh =
 
 
 vertexShader : VertexShader Uniforms Attributes Varyings
-vertexShader _ _ =
-    { position = vec3 0 0 0
-    , varyings = { color = vec3 0 0 0 }
+vertexShader { time } { position, color } =
+    { position =
+        position
+            |> Mat4.transform
+                (Mat4.makeRotate time (Vec3.normalize (vec3 1 2 1))
+                    |> Mat4.mul (Mat4.makeScale3 0.5 0.5 0.5)
+                    |> Mat4.mul (Mat4.makeTranslate3 0 0 20)
+                )
+    , varyings = { color = color }
     }
 
 

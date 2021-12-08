@@ -10,6 +10,7 @@ module Renderer exposing
     , VertexShader
     , emptyImpl
     , init
+    , mapTriangle
     , ndcToScreen
     , render
     , setPixel
@@ -17,7 +18,7 @@ module Renderer exposing
     )
 
 import AltMath.Matrix4 as Mat4 exposing (Mat4)
-import AltMath.Vector3 as Vec3 exposing (Vec3)
+import AltMath.Vector3 exposing (Vec3)
 import Array exposing (Array)
 import Html exposing (Html)
 import Misc
@@ -27,15 +28,19 @@ import Misc
 -}
 type alias Entity uniforms attributes varyings =
     { uniforms : uniforms
-
-    -- TODO: This should be
-    --      mesh: Mesh attributes
-    -- but we need vertex shaders implemented first
-    , mesh : Mesh varyings
+    , mesh : Mesh attributes
     , vertexShader : VertexShader uniforms attributes varyings
     , pixelShader : PixelShader uniforms varyings
     , impl : Impl varyings
     }
+
+
+type alias VertexShader uniforms attributes varyings =
+    uniforms -> attributes -> { position : Vec3, varyings : varyings }
+
+
+type alias PixelShader uniforms varyings =
+    uniforms -> varyings -> Color
 
 
 type alias Vertex varyings =
@@ -47,7 +52,7 @@ type alias Triangle attributes =
 
 
 type alias Mesh attributes =
-    List (Triangle (Vertex attributes))
+    List (Triangle attributes)
 
 
 type alias Buffer =
@@ -106,14 +111,6 @@ emptyImpl =
     }
 
 
-type alias VertexShader uniforms attributes varyings =
-    uniforms -> attributes -> { position : Vec3, varyings : varyings }
-
-
-type alias PixelShader uniforms varyings =
-    uniforms -> varyings -> Color
-
-
 render : List (Html.Attribute msg) -> Entity uniforms attributes varyings -> Html msg
 render atts entity =
     render atts entity
@@ -132,7 +129,7 @@ ndcToScreen buffer =
         |> Mat4.mul (Mat4.makeTranslate3 0 (toFloat buffer.height) 0)
 
 
-transformMesh : Mat4 -> Mesh varyings -> Mesh varyings
+transformMesh : Mat4 -> Mesh { r | position : Vec3 } -> Mesh { r | position : Vec3 }
 transformMesh mat entity =
     entity
         |> List.map
@@ -144,4 +141,3 @@ transformMesh mat entity =
 mapTriangle : (a -> b) -> Triangle a -> Triangle b
 mapTriangle =
     Misc.mapThree
-

@@ -3,7 +3,6 @@ module Examples.ShaderToy exposing
     , Mat2
     , Uniforms
     , Varyings
-    , vertexShader
     , abs3
     , div2
     , impl
@@ -17,6 +16,7 @@ module Examples.ShaderToy exposing
     , rot
     , transform2
     , uniforms
+    , vertexShader
     , xy
     )
 
@@ -33,7 +33,7 @@ type alias Uniforms =
 
 
 type alias Attributes =
-    {}
+    { position : Vec3, fragCoord : Vec2 }
 
 
 type alias Varyings =
@@ -45,15 +45,15 @@ uniforms u =
     u
 
 
-mesh : { width : Float, height : Float } -> Mesh Varyings
+mesh : { width : Float, height : Float } -> Mesh Attributes
 mesh { width, height } =
-    [ ( { position = vec3 -1 -1 5, varyings = { fragCoord = vec2 0 0 } }
-      , { position = vec3 -1 1 5, varyings = { fragCoord = vec2 0 height } }
-      , { position = vec3 1 1 5, varyings = { fragCoord = vec2 width height } }
+    [ ( { position = vec3 -1 -1 5, fragCoord = vec2 0 0 }
+      , { position = vec3 -1 1 5, fragCoord = vec2 0 height }
+      , { position = vec3 1 1 5, fragCoord = vec2 width height }
       )
-    , ( { position = vec3 -1 -1 5, varyings = { fragCoord = vec2 0 0 } }
-      , { position = vec3 1 1 5, varyings = { fragCoord = vec2 width height } }
-      , { position = vec3 1 -1 5, varyings = { fragCoord = vec2 width 0 } }
+    , ( { position = vec3 -1 -1 5, fragCoord = vec2 0 0 }
+      , { position = vec3 1 1 5, fragCoord = vec2 width height }
+      , { position = vec3 1 -1 5, fragCoord = vec2 width 0 }
       )
     ]
 
@@ -68,9 +68,8 @@ impl =
 
 
 vertexShader : VertexShader Uniforms Attributes Varyings
-vertexShader _ _ =
-    -- TODO: Fix after introducing vertex shaders
-    { position = vec3 0 0 0, varyings = { fragCoord = vec2 0 0 } }
+vertexShader _ { position, fragCoord } =
+    { position = position, varyings = { fragCoord = fragCoord } }
 
 
 

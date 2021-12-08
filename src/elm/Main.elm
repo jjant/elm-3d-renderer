@@ -37,17 +37,8 @@ resolution =
 
 view : Model -> Html Msg
 view model =
-    let
-        angle =
-            model.t
-
-        transform =
-            Mat4.makeRotate angle (Vec3.normalize (vec3 1 2 1))
-                |> Mat4.mul (Mat4.makeScale3 0.5 0.5 0.5)
-                |> Mat4.mul (Mat4.makeTranslate3 0 0 20)
-    in
     mainDiv
-        [ Cube.entity transform
+        [ Cube.entity { time = model.t }
             |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
 
         -- , PhantomStarByCineShader.entity { iTime = model.t, iResolution = resolution }
