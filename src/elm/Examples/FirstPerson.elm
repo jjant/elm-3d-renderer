@@ -10,20 +10,17 @@ import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Browser
 import Browser.Dom exposing (Viewport, getViewport)
 import Browser.Events exposing (onAnimationFrameDelta, onKeyDown, onKeyUp, onResize)
+import Color
 import ElmGL
+import Examples.CrateTexture as CrateTexture
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (height, style, width)
+import Html.Attributes as Html exposing (height, style, width)
 import Html.Events exposing (keyCode)
 import Json.Decode as Decode exposing (Value)
 import Misc
-import Renderer exposing (Entity, Impl, Mesh, PixelShader, VertexShader)
+import Renderer exposing (Color, Entity, Impl, Mesh, PixelShader, VertexShader)
 import Task
 import Texture exposing (Texture)
-
-
-
--- import WebGL exposing (Entity, Mesh, Shader)
--- import WebGL.Texture as Texture exposing (Error, Texture)
 
 
 type alias Model =
@@ -42,8 +39,8 @@ type alias Person =
 type Msg
     = KeyChange Bool Int
     | Animate Float
+      -- | Resize Int Int
     | GetViewport Viewport
-    | Resize Int Int
 
 
 type alias Keys =
@@ -86,7 +83,8 @@ subscriptions _ =
         [ onAnimationFrameDelta Animate
         , onKeyDown (Decode.map (KeyChange True) keyCode)
         , onKeyUp (Decode.map (KeyChange False) keyCode)
-        , onResize Resize
+
+        -- , onResize Resize
         ]
 
 
@@ -106,16 +104,15 @@ update action model =
             , Cmd.none
             )
 
-        Resize width height ->
-            ( { model
-                | size =
-                    { width = toFloat width
-                    , height = toFloat height
-                    }
-              }
-            , Cmd.none
-            )
-
+        -- Resize width height ->
+        --     ( { model
+        --         | size =
+        --             { width = toFloat width
+        --             , height = toFloat height
+        --             }
+        --       }
+        --     , Cmd.none
+        --     )
         Animate dt ->
             ( { model
                 | person =
@@ -214,21 +211,47 @@ gravity dt person =
 -- View
 
 
+myTexture : Texture
+myTexture =
+    CrateTexture.crateTexture
+
+
+mainDiv : List (Html msg) -> Html msg
+mainDiv =
+    div
+        [ Html.style "display" "flex"
+        , Html.style "justify-content" "center"
+        , Html.style "align-items" "center"
+        , Html.style "flex-wrap" "wrap"
+        , Html.style "background-color" "black"
+        , Html.style "height" "100vh"
+        , Html.style "font-size" "0"
+        ]
+
+
+width =
+    100
+
+
+height =
+    100
+
+
 view : Model -> Html Msg
 view { size, person } =
-    div
-        [ style "width" (String.fromFloat size.width ++ "px")
-        , style "height" (String.fromFloat size.height ++ "px")
-        , style "position" "absolute"
-        , style "left" "0"
-        , style "top" "0"
-        ]
+    mainDiv
         [ ElmGL.render
-            { width = round size.width
-            , height = round size.height
+            { width = width
+            , height = height
             , pixelSize = 10
             }
-            (scene size person myTexture)
+            (scene
+                { width = width
+                , height = height
+                }
+                person
+                myTexture
+            )
         , div
             [ style "position" "absolute"
             , style "font-family" "monospace"
@@ -249,11 +272,11 @@ message =
 
 
 scene : { width : Float, height : Float } -> Person -> Texture -> Entity Uniforms Vertex Varyings
-scene { width, height } person texture =
+scene size person texture =
     let
         perspective =
             Mat4.mul
-                (Mat4.makePerspective 45 (width / height) 0.01 100)
+                (Mat4.makePerspective 45 (size.width / size.height) 0.01 100)
                 (Mat4.makeLookAt person.position (Vec3.add person.position Vec3.k) Vec3.j)
     in
     { vertexShader = vertexShader

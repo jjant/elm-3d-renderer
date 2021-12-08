@@ -11,6 +11,7 @@ import Examples.Cube as Cube
 import Examples.ShaderToy as ShaderToy
 import Examples.ShaderToy.CreationBySilexars as CreationBySilexars
 import Examples.ShaderToy.PhantomStarByCineShader as PhantomStarByCineShader
+import Examples.SolidTriangle as SolidTriangle
 import Html exposing (Html, div)
 import Html.Attributes as Html
 
@@ -38,13 +39,14 @@ resolution =
 view : Model -> Html Msg
 view model =
     mainDiv
-        [ Cube.entity { time = model.t }
+        [ Html.text ""
+        , SolidTriangle.entity
             |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
 
-        -- , PhantomStarByCineShader.entity { iTime = model.t, iResolution = resolution }
+        -- , Cube.entity { time = model.t }
         --     |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
-        , CreationBySilexars.entity { iTime = model.t, iResolution = resolution }
-            |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
+        -- , CreationBySilexars.entity { iTime = model.t, iResolution = resolution }
+        --     |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
         ]
 
 
@@ -103,7 +105,9 @@ mainDiv =
         , Html.style "align-items" "center"
         , Html.style "flex-wrap" "wrap"
         , Html.style "padding" "36px 0"
-        , Html.style "background-color" "#aaa"
-        , Html.style "height" "500px"
+
+        -- , Html.style "background-color" "#333"
+        , Html.style "background-color" "rgba(0,0,0,0.95)"
+        , Html.style "height" "100vh"
         , Html.style "font-size" "0"
         ]

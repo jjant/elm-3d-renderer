@@ -47,12 +47,12 @@ type alias Vertex varyings =
     { position : Vec3, varyings : varyings }
 
 
-type alias Triangle attributes =
-    ( attributes, attributes, attributes )
-
-
 type alias Mesh attributes =
     List (Triangle attributes)
+
+
+type alias Triangle attributes =
+    ( attributes, attributes, attributes )
 
 
 type alias Buffer =
@@ -141,3 +141,14 @@ transformMesh mat entity =
 mapTriangle : (a -> b) -> Triangle a -> Triangle b
 mapTriangle =
     Misc.mapThree
+
+
+
+-- entity :
+--     VertexShader attributes uniforms varyings
+--     -> PixelShader uniforms varyings
+--     -> Mesh attributes
+--     -> uniforms
+--     -> Entity uniforms attributes varyings
+-- entity =
+--     Debug.todo ""

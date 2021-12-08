@@ -24,7 +24,10 @@ renderToBuffer { uniforms, mesh, impl, pixelShader, vertexShader } buffer =
             buffer
 
 
-render : { width : Int, height : Int, pixelSize : Int } -> Entity uniforms attributes varyings -> Html msg
+render :
+    { width : Int, height : Int, pixelSize : Int }
+    -> Entity uniforms attributes varyings
+    -> Html msg
 render { width, height, pixelSize } entity =
     let
         buffer =
@@ -52,6 +55,7 @@ render { width, height, pixelSize } entity =
                         , Html.style "width" (String.fromInt pixelSize ++ "px")
                         , Html.style "height" (String.fromInt pixelSize ++ "px")
                         , Html.style "background-color" (aColor color)
+                        , Html.style "display" "inline-block"
                         ]
                         []
                 )

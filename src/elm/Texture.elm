@@ -1,6 +1,7 @@
 module Texture exposing (Texture, get, height, init, set, width)
 
 import Array exposing (Array)
+import Color
 import Misc
 import Renderer exposing (Color)
 
@@ -40,13 +41,14 @@ get : Float -> Float -> Texture -> Color
 get xF yF texture =
     let
         x =
-            round (xF * toFloat (width texture))
+            floor (clamp 0 1 xF * toFloat (width texture))
 
         y =
-            round (yF * toFloat (height texture))
+            floor (clamp 0 1 yF * toFloat (height texture))
 
         index =
             x + width texture * y
     in
     Array.get index texture.data
-        |> Misc.unwrap ("Texture.get " ++ Debug.toString ( x, y ))
+        -- |> Misc.unwrap ("Texture.get " ++ Debug.toString ( x, y ))
+        |> Maybe.withDefault Color.green
