@@ -20,10 +20,10 @@ type alias Varyings =
     {}
 
 
-entity : Entity Uniforms Attributes Varyings
-entity =
+entity : Uniforms -> Entity Uniforms Attributes Varyings
+entity uniforms =
     { mesh = mesh
-    , uniforms = {}
+    , uniforms = uniforms
     , vertexShader = vertexShader
     , pixelShader = pixelShader
     , impl = Renderer.emptyImpl
@@ -46,8 +46,9 @@ mesh =
 
 
 vertexShader : VertexShader Uniforms Attributes Varyings
-vertexShader uniforms pos =
-    { position = vec3 pos.x pos.y 1
+vertexShader _ pos =
+    { position =
+        vec3 pos.x pos.y 1
     , varyings = {}
     }
 

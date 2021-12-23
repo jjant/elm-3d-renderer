@@ -40,7 +40,7 @@ view : Model -> Html Msg
 view model =
     mainDiv
         [ Html.text ""
-        , SolidTriangle.entity
+        , SolidTriangle.entity {}
             |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
 
         -- , Cube.entity { time = model.t }
