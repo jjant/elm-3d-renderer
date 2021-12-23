@@ -1,4 +1,4 @@
-module Examples.FirstPerson exposing (main)
+module Examples.FirstPerson exposing (Model, Msg, init, main, subscriptions, update, view)
 
 {-
    Try adding the ability to crouch or to land on top of the crate.
