@@ -9,7 +9,7 @@ import Renderer exposing (Entity, Mesh, PixelShader, VertexShader)
 
 
 type alias Uniforms =
-    {}
+    { time : Float }
 
 
 type alias Attributes =
@@ -46,9 +46,13 @@ mesh =
 
 
 vertexShader : VertexShader Uniforms Attributes Varyings
-vertexShader _ pos =
+vertexShader { time } pos =
     { position =
         vec3 pos.x pos.y 1
+            |> Mat4.transform
+                (Mat4.mul (Mat4.makeRotate time (vec3 0 0 1))
+                    (Mat4.makeScale3 0.5 0.5 0.5)
+                )
     , varyings = {}
     }
 

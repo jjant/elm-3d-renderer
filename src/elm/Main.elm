@@ -73,7 +73,7 @@ viewExample model =
             Html.text ""
 
         SolidTriangleModel ->
-            SolidTriangle.entity {}
+            SolidTriangle.entity { time = model.t }
                 |> ElmGL.render { width = width, height = height, pixelSize = pixelSize }
 
         CubeModel ->
