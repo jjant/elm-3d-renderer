@@ -20,10 +20,10 @@ module Examples.ShaderToy exposing
     , xy
     )
 
-import AltMath.Vector2 as Vec2 exposing (Vec2, vec2)
-import AltMath.Vector3 exposing (Vec3, vec3)
 import Misc
 import Renderer exposing (Impl, Mesh, VertexShader)
+import Vec2 exposing (Vec2, vec2)
+import Vec3 exposing (Vec3, vec3)
 
 
 type alias Uniforms =

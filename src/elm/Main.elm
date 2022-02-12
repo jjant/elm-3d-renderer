@@ -1,8 +1,5 @@
 module Main exposing (main)
 
-import AltMath.Matrix4 as Mat4 exposing (Mat4)
-import AltMath.Vector2 as Vec2 exposing (Vec2, vec2)
-import AltMath.Vector3 as Vec3 exposing (vec3)
 import Browser
 import Browser.Events
 import ElmGL
@@ -15,6 +12,9 @@ import Examples.SolidTriangle as SolidTriangle
 import Html exposing (Html, div, map)
 import Html.Attributes as Html
 import Html.Events as Html
+import Mat4 exposing (Mat4)
+import Vec2 exposing (Vec2, vec2)
+import Vec3 exposing (vec3)
 
 
 type Example

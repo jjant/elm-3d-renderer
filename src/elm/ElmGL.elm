@@ -1,12 +1,12 @@
 module ElmGL exposing (render)
 
-import AltMath.Vector3 as Vec3
 import Array
 import Color exposing (black)
 import Html exposing (Html)
 import Html.Attributes as Html
 import Raster
 import Renderer exposing (Buffer, Color, Entity, Triangle, Vertex)
+import Vec3
 
 
 renderToBuffer : Entity uniforms attributes varyings -> Buffer -> Buffer

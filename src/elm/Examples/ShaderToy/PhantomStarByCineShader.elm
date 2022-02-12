@@ -1,10 +1,10 @@
 module Examples.ShaderToy.PhantomStarByCineShader exposing (entity)
 
-import AltMath.Vector2 as Vec2 exposing (Vec2, vec2)
-import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Examples.ShaderToy as ShaderToy exposing (Attributes, Uniforms, Varyings, abs3, max3, mod, pmod, rot, transform2)
 import Misc
 import Renderer exposing (Entity, PixelShader)
+import Vec2 exposing (Vec2, vec2)
+import Vec3 exposing (Vec3, vec3)
 
 
 entity : Uniforms -> Entity Uniforms Attributes Varyings

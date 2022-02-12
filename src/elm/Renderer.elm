@@ -17,11 +17,11 @@ module Renderer exposing
     , transformMesh
     )
 
-import AltMath.Matrix4 as Mat4 exposing (Mat4)
-import AltMath.Vector3 exposing (Vec3)
 import Array exposing (Array)
 import Html exposing (Html)
+import Mat4 exposing (Mat4)
 import Misc
+import Vec3 exposing (Vec3, vec3)
 
 
 {-| The core type that defines a "thing" that can be rendered.
@@ -122,11 +122,11 @@ render atts entity =
 
 ndcToScreen : Buffer -> Mat4
 ndcToScreen buffer =
-    Mat4.makeScale3 0.5 0.5 1
-        |> Mat4.mul (Mat4.makeTranslate3 0.5 0.5 0)
-        |> Mat4.mul (Mat4.makeScale3 (toFloat buffer.width) (toFloat buffer.height) 1)
-        |> Mat4.mul (Mat4.makeScale3 1 -1 1)
-        |> Mat4.mul (Mat4.makeTranslate3 0 (toFloat buffer.height) 0)
+    Mat4.scale (vec3 0.5 0.5 1)
+        |> Mat4.mul (Mat4.translate (vec3 0.5 0.5 0))
+        |> Mat4.mul (Mat4.scale (vec3 (toFloat buffer.width) (toFloat buffer.height) 1))
+        |> Mat4.mul (Mat4.scale (vec3 1 -1 1))
+        |> Mat4.mul (Mat4.translate (vec3 0 (toFloat buffer.height) 0))
 
 
 transformMesh : Mat4 -> Mesh { r | position : Vec3 } -> Mesh { r | position : Vec3 }
@@ -134,7 +134,7 @@ transformMesh mat entity =
     entity
         |> List.map
             (\tri ->
-                mapTriangle (\v -> { v | position = Mat4.transform mat v.position }) tri
+                mapTriangle (\v -> { v | position = Mat4.transformPoint mat v.position }) tri
             )
 
 

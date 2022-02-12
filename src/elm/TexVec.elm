@@ -6,9 +6,9 @@ module TexVec exposing
     , sub
     )
 
-import AltMath.Vector2 as Vec2 exposing (Vec2)
-import AltMath.Vector3 as Vec3 exposing (Vec3)
 import Misc
+import Vec2 exposing (Vec2)
+import Vec3 exposing (Vec3)
 
 
 type alias TexVec =

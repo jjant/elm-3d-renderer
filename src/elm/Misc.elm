@@ -3,12 +3,13 @@ module Misc exposing
     , interpolate2
     , interpolate3
     , mapThree
+    , sort2
+    , sort3
     , unwrap
-    ,sort2,sort3
     )
 
-import AltMath.Vector2 as Vec2 exposing (Vec2)
-import AltMath.Vector3 as Vec3 exposing (Vec3)
+import Vec2 exposing (Vec2)
+import Vec3 exposing (Vec3)
 
 
 unwrap : String -> Maybe a -> a
@@ -57,6 +58,7 @@ mapThree : (a -> b) -> ( a, a, a ) -> ( b, b, b )
 mapThree f ( a0, a1, a2 ) =
     ( f a0, f a1, f a2 )
 
+
 sort2 : (a -> comparable) -> ( a, a ) -> ( a, a )
 sort2 f ( a, b ) =
     if f a <= f b then
@@ -94,4 +96,3 @@ sort3 f (( a, b, c ) as triplet) =
 
     else
         ( b, a, c )
-

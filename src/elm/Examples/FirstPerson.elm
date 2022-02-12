@@ -4,9 +4,6 @@ module Examples.FirstPerson exposing (Model, Msg, init, main, subscriptions, upd
    Try adding the ability to crouch or to land on top of the crate.
 -}
 
-import AltMath.Matrix4 as Mat4 exposing (Mat4)
-import AltMath.Vector2 as Vec2 exposing (Vec2, vec2)
-import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Browser
 import Browser.Dom exposing (Viewport, getViewport)
 import Browser.Events exposing (onAnimationFrameDelta, onKeyDown, onKeyUp, onResize)
@@ -17,10 +14,13 @@ import Html exposing (Html, div, text)
 import Html.Attributes as Html exposing (height, style, width)
 import Html.Events exposing (keyCode)
 import Json.Decode as Decode exposing (Value)
+import Mat4 exposing (Mat4)
 import Misc
 import Renderer exposing (Color, Entity, Impl, Mesh, PixelShader, VertexShader)
 import Task
 import Texture exposing (Texture)
+import Vec2 exposing (Vec2, vec2)
+import Vec3 exposing (Vec3, vec3)
 
 
 type alias Model =
@@ -165,9 +165,9 @@ move { left, right, up, down, space } person =
                 2
 
             else
-                Vec3.getY person.velocity
+                person.velocity.y
     in
-    if Vec3.getY person.position <= eyeLevel then
+    if person.position.y <= eyeLevel then
         { person
             | velocity =
                 vec3 (direction left right) vy (direction up down)
@@ -185,7 +185,7 @@ physics dt person =
     in
     { person
         | position =
-            if Vec3.getY position < eyeLevel then
+            if position.y < eyeLevel then
                 Vec3.setY eyeLevel position
 
             else
@@ -195,11 +195,11 @@ physics dt person =
 
 gravity : Float -> Person -> Person
 gravity dt person =
-    if Vec3.getY person.position > eyeLevel then
+    if person.position.y > eyeLevel then
         { person
             | velocity =
                 Vec3.setY
-                    (Vec3.getY person.velocity - 2 * dt)
+                    (person.velocity.y - 2 * dt)
                     person.velocity
         }
 
@@ -276,8 +276,10 @@ scene size person texture =
     let
         perspective =
             Mat4.mul
-                (Mat4.makePerspective 45 (size.width / size.height) 0.01 100)
-                (Mat4.makeLookAt person.position (Vec3.add person.position Vec3.k) Vec3.j)
+                (Mat4.perspective { fovy = 45, aspect = size.width / size.height, zNear = 0.01, zFar = 100 })
+                (Mat4.lookAt { eye = person.position, centerOfAttention = Vec3.add person.position Vec3.k, up = Vec3.j }
+                    |> Misc.unwrap "FirstPerson.scene"
+                )
     in
     { vertexShader = vertexShader
     , pixelShader = pixelShader
@@ -320,13 +322,13 @@ rotatedSquare ( angleXZ, angleYZ ) =
     let
         transformMat =
             Mat4.mul
-                (Mat4.makeRotate (degrees angleXZ) Vec3.j)
-                (Mat4.makeRotate (degrees angleYZ) Vec3.i)
+                (Mat4.rotate (degrees angleXZ) Vec3.j)
+                (Mat4.rotate (degrees angleYZ) Vec3.i)
 
         transform vertex =
             { vertex
                 | position =
-                    Mat4.transform transformMat vertex.position
+                    Mat4.transformPoint transformMat vertex.position
             }
 
         transformTriangle ( a, b, c ) =
@@ -372,7 +374,7 @@ type alias Varyings =
 vertexShader : VertexShader Uniforms Vertex Varyings
 vertexShader { perspective } { position, coord } =
     { position =
-        Mat4.transform perspective position
+        Mat4.transformPoint perspective position
     , varyings =
         { vcoord = coord
         }

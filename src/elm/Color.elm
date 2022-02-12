@@ -1,7 +1,7 @@
 module Color exposing (black, blue, green, red, white)
 
-import AltMath.Vector3 exposing (vec3)
 import Renderer exposing (Color)
+import Vec3 exposing (vec3)
 
 
 white : Color

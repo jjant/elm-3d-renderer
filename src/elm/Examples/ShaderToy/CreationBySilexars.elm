@@ -3,11 +3,11 @@ module Examples.ShaderToy.CreationBySilexars exposing (entity)
 -- https://www.shadertoy.com/view/XsXXDn
 -- If you intend to reuse this shader, please add credits to 'Danilo Guanabara'
 
-import AltMath.Vector2 as Vec2 exposing (vec2)
-import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Examples.ShaderToy as ShaderToy exposing (Attributes, Uniforms, Varyings, div2)
 import Misc
 import Renderer exposing (Entity, PixelShader)
+import Vec2 exposing (vec2)
+import Vec3 exposing (Vec3, vec3)
 
 
 entity : Uniforms -> Entity Uniforms Attributes Varyings

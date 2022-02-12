@@ -21,10 +21,10 @@ The x-axis going right, y-axis going down, and the origin at the top left:
 
 -}
 
-import AltMath.Vector3 as Vec3 exposing (Vec3)
 import Color exposing (white)
 import Misc
 import Renderer exposing (Buffer, Color, Impl, PixelShader, Triangle, Vertex)
+import Vec3 exposing (Vec3)
 
 
 
@@ -199,10 +199,6 @@ renderFlatTriangleTex impl ( v0, v1, v2 ) ( dv0, dv1 ) itEdge1_ uniforms pixelSh
 
 
 ---- MISC ----
-
-
-
-
 ----- WIREFRAME DRAWING------
 
 

@@ -5,12 +5,12 @@ module Examples.Cube exposing
     , entity
     )
 
-import AltMath.Matrix4 as Mat4 exposing (Mat4)
-import AltMath.Vector3 as Vec3 exposing (Vec3, vec3)
 import Color exposing (..)
 import Examples.ShaderToy exposing (Uniforms)
+import Mat4
 import Misc
 import Renderer exposing (Color, Entity, Impl, Mesh, PixelShader, VertexShader)
+import Vec3 exposing (Vec3, vec3)
 
 
 type alias Attributes =
@@ -51,19 +51,19 @@ mesh =
             ]
 
         topFace =
-            Renderer.transformMesh (Mat4.makeRotate (pi / 2) (vec3 1 0 0)) frontFace
+            Renderer.transformMesh (Mat4.rotate (pi / 2) (vec3 1 0 0)) frontFace
 
         bottomFace =
-            Renderer.transformMesh (Mat4.makeRotate (-pi / 2) (vec3 1 0 0)) frontFace
+            Renderer.transformMesh (Mat4.rotate (-pi / 2) (vec3 1 0 0)) frontFace
 
         rightFace =
-            Renderer.transformMesh (Mat4.makeRotate (-pi / 2) (vec3 0 1 0)) frontFace
+            Renderer.transformMesh (Mat4.rotate (-pi / 2) (vec3 0 1 0)) frontFace
 
         leftFace =
-            Renderer.transformMesh (Mat4.makeRotate (pi / 2) (vec3 0 1 0)) frontFace
+            Renderer.transformMesh (Mat4.rotate (pi / 2) (vec3 0 1 0)) frontFace
 
         backFace =
-            Renderer.transformMesh (Mat4.makeRotate pi (vec3 0 1 0)) frontFace
+            Renderer.transformMesh (Mat4.rotate pi (vec3 0 1 0)) frontFace
     in
     []
         ++ topFace
@@ -78,10 +78,10 @@ vertexShader : VertexShader Uniforms Attributes Varyings
 vertexShader { time } { position, color } =
     { position =
         position
-            |> Mat4.transform
-                (Mat4.makeRotate time (Vec3.normalize (vec3 1 2 1))
-                    |> Mat4.mul (Mat4.makeScale3 0.5 0.5 0.5)
-                    |> Mat4.mul (Mat4.makeTranslate3 0 0 20)
+            |> Mat4.transformPoint
+                (Mat4.rotate time (Vec3.normalize (vec3 1 2 1))
+                    |> Mat4.mul (Mat4.scale (vec3 0.5 0.5 0.5))
+                    |> Mat4.mul (Mat4.translate (vec3 0 0 20))
                 )
     , varyings = { color = color }
     }
