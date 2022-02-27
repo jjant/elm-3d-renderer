@@ -50,8 +50,9 @@ vertexShader { time } pos =
     { position =
         vec3 pos.x pos.y 1
             |> Mat4.transformPoint
-                (Mat4.mul (Mat4.rotate time (vec3 0 0 1))
-                    (Mat4.scale (vec3 0.5 0.5 0.5))
+                (--Mat4.mul
+                 Mat4.rotate (2 * time) (vec3 0 0 1)
+                 -- (Mat4.scale (vec3 0.5 0.5 0.5))
                 )
     , varyings = {}
     }
